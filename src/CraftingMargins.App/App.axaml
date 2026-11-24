@@ -1,0 +1,258 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="CraftingMargins.App.App"
+             RequestedThemeVariant="Default">
+  <Application.Resources>
+    <!-- Fluent's tab headers are 24px; calmer here. -->
+    <x:Double x:Key="TabItemHeaderFontSize">15</x:Double>
+    <x:Boolean x:Key="TableCellFocusVisible">False</x:Boolean>
+  </Application.Resources>
+
+  <Application.Styles>
+    <!-- Colours (light/dark, teal/blue) are set in code: AppTheme.cs. -->
+    <FluentTheme/>
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+
+    <!-- ===== Text ===== -->
+    <Style Selector="TextBlock.h1">
+      <Setter Property="FontSize" Value="20"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.h2">
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,0,0,2"/>
+    </Style>
+    <Style Selector="TextBlock.pageTitle">
+      <Setter Property="FontSize" Value="22"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.pageSub">
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Margin" Value="0,2,0,0"/>
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <!-- Shown next to a Save button while that part of the screen has changes that aren't saved. -->
+    <Style Selector="TextBlock.unsaved">
+      <Setter Property="Text" Value="● Unsaved changes"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource BadBrush}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <!-- A date picker inside a table cell. -->
+    <Style Selector="CalendarDatePicker.cell">
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="4,0"/>
+      <Setter Property="SelectedDateFormat" Value="Custom"/>
+      <Setter Property="CustomDateFormatString" Value="yyyy-MM-dd"/>
+      <Setter Property="PlaceholderText" Value="yyyy-mm-dd"/>
+    </Style>
+    <Style Selector="TextBlock.hint">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Margin" Value="0,4,0,0"/>
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+    <Style Selector="TextBlock.tileLabel">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.tileValue">
+      <Setter Property="FontSize" Value="30"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}"/>
+      <Setter Property="Margin" Value="0,4,0,0"/>
+    </Style>
+
+    <!-- Round icon in the top-right corner of a Home tile -->
+    <Style Selector="Border.tileIcon">
+      <Setter Property="Width" Value="36"/>
+      <Setter Property="Height" Value="36"/>
+      <Setter Property="CornerRadius" Value="18"/>
+      <Setter Property="VerticalAlignment" Value="Top"/>
+      <Setter Property="Background" Value="{DynamicResource BrandLightBrush}"/>
+    </Style>
+    <Style Selector="Path.tileIcon">
+      <Setter Property="Width" Value="18"/>
+      <Setter Property="Height" Value="18"/>
+      <Setter Property="Stretch" Value="Uniform"/>
+      <Setter Property="StrokeThickness" Value="2"/>
+      <Setter Property="StrokeLineCap" Value="Round"/>
+      <Setter Property="StrokeJoin" Value="Round"/>
+      <Setter Property="Stroke" Value="{DynamicResource BrandTextBrush}"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <!-- ===== Containers ===== -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="18"/>
+    </Style>
+    <Style Selector="Border.bar">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="12,8"/>
+    </Style>
+    <!-- Small coloured status pill (Pass / Fail). -->
+    <Style Selector="Border.pill">
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Padding" Value="10,2"/>
+      <Setter Property="HorizontalAlignment" Value="Left"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Ellipse.dot">
+      <Setter Property="Width" Value="10"/>
+      <Setter Property="Height" Value="10"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="StackPanel.buttons">
+      <Setter Property="Orientation" Value="Horizontal"/>
+      <Setter Property="Spacing" Value="8"/>
+      <Setter Property="Margin" Value="0,8"/>
+    </Style>
+
+    <!-- ===== Buttons ===== -->
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Padding" Value="14,7"/>
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="{DynamicResource BrandBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource OnBrandBrush}"/>
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource BrandDarkBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource OnBrandBrush}"/>
+    </Style>
+    <Style Selector="Button.danger">
+      <Setter Property="Foreground" Value="{DynamicResource BadBrush}"/>
+    </Style>
+    <Style Selector="Button.link">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <!-- ===== Tabs ===== -->
+    <Style Selector="TabItem">
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="MinHeight" Value="44"/>
+      <Setter Property="Padding" Value="14,0"/>
+    </Style>
+    <Style Selector="TabItem:selected">
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TabControl.sub TabItem">
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="MinHeight" Value="38"/>
+    </Style>
+
+    <!-- ===== Tables ===== -->
+    <Style Selector="DataGrid">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+      <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource GridLineBrush}"/>
+      <Setter Property="RowHeight" Value="34"/>
+      <Setter Property="ClipToBounds" Value="True"/>
+    </Style>
+    <Style Selector="DataGridColumnHeader">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource HeaderBrush}"/>
+      <Setter Property="Padding" Value="10,6"/>
+    </Style>
+    <Style Selector="DataGridCell">
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <!-- Money and counts line up on the right. -->
+    <Style Selector="DataGridCell.num">
+      <Setter Property="HorizontalContentAlignment" Value="Right"/>
+    </Style>
+    <Style Selector="DataGridCell.strong">
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="DataGridRow:nth-child(2n)">
+      <Setter Property="Background" Value="{DynamicResource AltRowBrush}"/>
+    </Style>
+    <!-- Selected rows: pale teal so the numbers stay readable (the default is solid accent). -->
+    <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+      <Setter Property="Fill" Value="{DynamicResource SelectBrush}"/>
+      <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
+      <Setter Property="Fill" Value="{DynamicResource HoverBrush}"/>
+      <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="DataGridRow:selected:pointerover /template/ Rectangle#BackgroundRectangle">
+      <Setter Property="Fill" Value="{DynamicResource SelectHoverBrush}"/>
+    </Style>
+    <Style Selector="DataGridRow:selected">
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    </Style>
+    <!-- The outline around the table cell that has keyboard focus: hidden unless Settings → Appearance turns it on (AppTheme.ShowTableFocusOutline). -->
+    <Style Selector="DataGridCell:current /template/ Grid#FocusVisual, DataGridCell:focus /template/ Grid#FocusVisual">
+      <Setter Property="IsVisible" Value="{DynamicResource TableCellFocusVisible}"/>
+    </Style>
+
+    <!-- ===== Scroll bars: always full size, so it's obvious a table or page scrolls ===== -->
+    <Style Selector="ScrollBar">
+      <Setter Property="AllowAutoHide" Value="False"/>
+    </Style>
+    <!-- The theme lets content run underneath the scroll bars; give the bars their own space instead. -->
+    <Style Selector="ScrollViewer">
+      <Setter Property="AllowAutoHide" Value="False"/>
+    </Style>
+    <Style Selector="ScrollViewer /template/ ScrollContentPresenter#PART_ContentPresenter">
+      <Setter Property="Grid.RowSpan" Value="1"/>
+      <Setter Property="Grid.ColumnSpan" Value="1"/>
+    </Style>
+    <Style Selector="DataGrid /template/ DataGridRowsPresenter#PART_RowsPresenter">
+      <Setter Property="Grid.RowSpan" Value="1"/>
+      <Setter Property="Grid.ColumnSpan" Value="2"/>
+    </Style>
+
+    <!-- ===== Lists ===== -->
+    <Style Selector="ListBox">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="4"/>
+    </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="CornerRadius" Value="6"/>
+    </Style>
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource SelectBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource SelectHoverBrush}"/>
+    </Style>
+  </Application.Styles>
+</Application>

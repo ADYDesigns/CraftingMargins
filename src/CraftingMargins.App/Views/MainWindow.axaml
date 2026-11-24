@@ -1,0 +1,62 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CraftingMargins.App.ViewModels"
+        xmlns:core="using:CraftingMargins.Core"
+        xmlns:local="using:CraftingMargins.App"
+        xmlns:views="using:CraftingMargins.App.Views"
+        x:Class="CraftingMargins.App.Views.MainWindow"
+        Icon="/Assets/CraftingMargins.ico"
+        x:DataType="vm:MainViewModel"
+        Title="{Binding Title}"
+        Width="1320" Height="860" MinWidth="900" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource PageBrush}">
+
+  <DockPanel>
+    <!-- ===== Header ===== -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource HeaderBarBrush}" Padding="24,12">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Name="ImportButton" Content="Import Etsy files…" IsVisible="{Binding !IsDemo}" ToolTip.Tip="{Binding IsDemo, Converter={x:Static vm:Converters.ImportTip}}" Background="{DynamicResource OnBrandBrush}" Foreground="{DynamicResource BrandBrush}" FontWeight="SemiBold"/>
+        <Button DockPanel.Dock="Right" Name="AttentionButton" Margin="0,0,12,0" Background="{DynamicResource BadBrush}" Foreground="{DynamicResource OnBrandBrush}" FontWeight="SemiBold"
+                IsVisible="{Binding Attention.NeedsAction}" Content="{Binding Attention.HeaderText}" ToolTip.Tip="Show what needs attention (bottom of Home)"/>
+        <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+          <TextBlock Text="Crafting Margins" Foreground="{DynamicResource OnBrandBrush}" FontSize="21" FontWeight="SemiBold"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- ===== Demo shop banner ===== -->
+    <Border DockPanel.Dock="Top" Classes="bar" CornerRadius="0" BorderThickness="0,0,0,1" Padding="24,8" IsVisible="{Binding IsDemo}">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="primary" Content="Leave the demo" Command="{Binding LeaveDemoCommand}"/>
+        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" FontWeight="SemiBold"
+                   Text="Demo shop: everything here is made up. Look around and change anything; nothing touches your own shop, and the demo starts fresh each time you open it."/>
+      </DockPanel>
+    </Border>
+
+    <!-- ===== Footer: status + the attribution Etsy's API Terms require ===== -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="24,7">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Text="{Binding Attribution}" FontSize="11" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="16,0,0,0"/>
+        <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="90" Height="6" MinHeight="6" Margin="0,0,12,0" VerticalAlignment="Center"
+                     IsVisible="{Binding IsWorking}" AutomationProperties.Name="Working"/>
+        <TextBlock Text="{Binding Status}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip.Tip="{Binding Status}"/>
+      </DockPanel>
+    </Border>
+
+    <TabControl SelectedIndex="{Binding SelectedTab}" Padding="0" Margin="16,4,16,0">
+
+      <!-- Each tab is its own file in Views (HomeView.axaml and so on), so no one file is too big to find things in. -->
+      <TabItem Header="Home"><views:HomeView Name="HomeTab"/></TabItem>
+      <TabItem Header="Monthly P&amp;L"><views:MonthlyPnlView/></TabItem>
+      <TabItem Header="Orders"><views:OrdersView/></TabItem>
+      <TabItem Header="Reports"><views:ReportsView/></TabItem>
+      <TabItem Header="Pricing"><views:PricingView/></TabItem>
+      <TabItem Header="Products &amp; Costs"><views:ProductsView/></TabItem>
+      <TabItem Header="Expenses"><views:ExpensesView/></TabItem>
+      <TabItem Header="Taxes"><views:TaxesView/></TabItem>
+      <TabItem Header="Settings"><views:SettingsView/></TabItem>
+      <TabItem Header="About"><views:AboutView/></TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>

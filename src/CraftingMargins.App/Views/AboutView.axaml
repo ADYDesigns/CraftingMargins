@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CraftingMargins.App.ViewModels"
+             xmlns:core="using:CraftingMargins.Core"
+             xmlns:local="using:CraftingMargins.App"
+             x:Class="CraftingMargins.App.Views.AboutView"
+             x:DataType="vm:MainViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="16" Margin="8,16,8,24">
+      <StackPanel>
+        <TextBlock Classes="pageTitle" Text="Crafting Margins"/>
+        <TextBlock Classes="pageSub" Name="VersionText"/>
+      </StackPanel>
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock TextWrapping="Wrap" Text="Free, open-source bookkeeping and profit tracking for small Etsy sellers who make physical products."/>
+          <TextBlock TextWrapping="Wrap" FontWeight="SemiBold" Text="Written and provided by ADY Designs, LLC"/>
+          <TextBlock TextWrapping="Wrap" Text="The program is licensed under the GNU General Public License v3, with no warranty. The ADY Designs name, and the Crafting Margins name and icon, are not covered by that license."/>
+          <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource MutedBrush}" Text="{Binding Attribution}"/>
+        </StackPanel>
+      </Border>
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Not tax or financial advice"/>
+          <TextBlock TextWrapping="Wrap" Text="Crafting Margins does arithmetic on your Etsy data. It is not tax, accounting, legal or financial advice. Check important numbers against your Etsy statements and talk to a tax professional about your filing."/>
+        </StackPanel>
+      </Border>
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Privacy"/>
+          <TextBlock Name="PrivacyText" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Where your data is"/>
+          <TextBlock TextWrapping="Wrap"><Run Text="Data folder: "/><Run Text="{Binding DataFolderText}" FontWeight="SemiBold"/></TextBlock>
+          <TextBlock TextWrapping="Wrap" IsVisible="{Binding BackupsElsewhere}"><Run Text="Backups: "/><Run Text="{Binding BackupFolderText}" FontWeight="SemiBold"/></TextBlock>
+          <TextBlock Classes="hint" Margin="0" TextWrapping="Wrap" Text="Change either in Settings → Program settings."/>
+        </StackPanel>
+      </Border>
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Support"/>
+          <TextBlock TextWrapping="Wrap" Text="Questions and bug reports go to the project's GitHub Issues page. There is no paid support, so a reply isn't promised, but reports help. Please never attach your Etsy files: they contain your buyers' details."/>
+          <Button Content="Open the Issues page" Command="{Binding OpenSupportCommand}" HorizontalAlignment="Left"/>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

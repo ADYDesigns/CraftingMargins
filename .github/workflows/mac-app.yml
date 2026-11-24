@@ -1,0 +1,60 @@
+# Builds the Mac app ("Crafting Margins.app", zipped) for Apple silicon and Intel Macs, and
+# checks that it starts.  It runs when a version tag such as v0.9.0 is pushed, or by hand:
+# Actions tab → "Mac app" → "Run workflow".  It doesn't run on every push because Mac build
+# time counts against the free monthly minutes ten times faster than Windows time.
+#
+# The zips appear under the run's "Artifacts", ready to attach to a GitHub Release.
+# Nothing is published automatically.
+
+name: Mac app
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac-app:
+    runs-on: macos-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.x
+
+      - name: Build for Apple silicon
+        run: bash packaging/macos/make-app.sh osx-arm64
+
+      - name: Build for Intel Macs
+        run: bash packaging/macos/make-app.sh osx-x64
+
+      # Start the Apple silicon app for 20 seconds with an empty data folder.  If it crashes
+      # on start (a missing library, a bad bundle), it will have exited by then and this fails.
+      - name: Check the app starts
+        run: |
+          export CRAFTING_MARGINS_DATA="$RUNNER_TEMP/cm-data"
+          "publish-mac/osx-arm64/Crafting Margins.app/Contents/MacOS/Crafting Margins" > "$RUNNER_TEMP/app.log" 2>&1 &
+          PID=$!
+          sleep 20
+          if kill -0 $PID 2>/dev/null; then
+            echo "Still running after 20 seconds: it started."
+            kill $PID
+          else
+            echo "The app exited during start-up:"
+            cat "$RUNNER_TEMP/app.log"
+            exit 1
+          fi
+
+      - name: Keep the zips
+        uses: actions/upload-artifact@v4
+        with:
+          name: Crafting Margins for macOS
+          path: publish-mac/*.zip

@@ -1,0 +1,378 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CraftingMargins.App.ViewModels"
+             xmlns:core="using:CraftingMargins.Core"
+             xmlns:local="using:CraftingMargins.App"
+             x:Class="CraftingMargins.App.Views.SettingsView"
+             x:DataType="vm:MainViewModel">
+  <DockPanel Margin="8,16,8,0">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+      <TextBlock Classes="pageTitle" Text="Settings"/>
+      <TextBlock Classes="pageSub" Text="Your shop, how the program works, and the optional Etsy API connection."/>
+    </StackPanel>
+    <TabControl Classes="sub" SelectedIndex="{Binding SettingsTab}" Padding="0,8,0,0">
+      <TabItem Header="Shop settings">
+        <DockPanel DataContext="{Binding Settings}" x:DataType="vm:SettingsViewModel">
+          <Border DockPanel.Dock="Bottom" Classes="bar" Margin="0,8,8,12">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="primary" Content="Save settings" Command="{Binding SaveCommand}"/>
+              <TextBlock DockPanel.Dock="Right" Classes="unsaved" Margin="0,0,12,0" IsVisible="{Binding Edit.IsDirty}"/>
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="Changes on this page take effect when you save."/>
+            </DockPanel>
+          </Border>
+          <ScrollViewer>
+            <StackPanel Spacing="16" Margin="0,0,8,8">
+            <Border Classes="card">
+              <StackPanel Spacing="14">
+                <TextBlock Classes="h2" Text="Shop"/>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Shop name"/>
+                  <TextBox Width="340" HorizontalAlignment="Left" Text="{Binding ShopName}"/>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Profit goal per sale"/>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="$" VerticalAlignment="Center" FontSize="15"/>
+                    <NumericUpDown Width="150" Value="{Binding ProfitFloor}" Minimum="0" Increment="0.5" FormatString="0.00"/>
+                  </StackPanel>
+                  <TextBlock Classes="hint" Text="The least you want to make on each sale after every Etsy fee, ad and cost. Prices that would make less, even on a sale that came through an Offsite Ad, get flagged."/>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="What you make"/>
+                  <ComboBox Width="460" HorizontalAlignment="Left" ItemsSource="{Binding CraftNames}" SelectedIndex="{Binding CraftIndex}"/>
+                  <TextBlock Classes="hint" Text="Sets starting points only: the unit a new material starts in, and the examples in the hints. Nothing you have entered changes."/>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Time"/>
+                  <CheckBox IsChecked="{Binding TrackMachineTime}" Content="My products take machine time (a 3D printer, laser cutter or kiln running)"/>
+                  <TextBlock Classes="hint" Text="On: each part has machine minutes, costed at the hourly rate under Per-sale costs below, and a part with none is flagged. Off: no machine time anywhere."/>
+                  <CheckBox Margin="0,8,0,0" IsChecked="{Binding TrackOwnTime}" Content="Track my own hands-on time too"/>
+                  <TextBlock Classes="hint" Text="On: each part also has 'your minutes', so the profit-per-hour figures cover your time. Give your time an hourly rate under Per-sale costs to count it as a cost (profit is then what's left after paying yourself); leave the rate at 0 to only see the hours."/>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Part amounts for past sales"/>
+                  <CheckBox IsChecked="{Binding UseWeightsAtSaleDate}" Content="Use the amounts that were in effect on the sale date"/>
+                  <TextBlock Classes="hint" Text="Off: every sale uses today's amounts for each part. On: a sale uses the amounts recorded for that date."/>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Personalization to skip when importing"/>
+                  <TextBox Width="460" HorizontalAlignment="Left" Text="{Binding IgnoredVariations}" PlaceholderText="Personalization, Engraving text"/>
+                  <TextBlock Classes="hint" Text="Option names, separated by commas, whose values are text the buyer typed. They're never saved."/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="h2" Text="Per-sale costs"/>
+                <TextBlock Classes="hint" Margin="0" Text="Costs Etsy doesn't take, applied to every sale. Each row applies from its date until the next row's date; add a row when a cost changes so older sales keep the old values."/>
+                <DataGrid AutomationProperties.Name="Per-sale costs, by start date" ItemsSource="{Binding CostVersions}" SelectedItem="{Binding SelectedCost}" MaxHeight="190" CanUserSortColumns="False" HorizontalAlignment="Left">
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="From" Width="160"><DataGridTemplateColumn.CellTemplate><DataTemplate x:DataType="vm:CostVersionRow"><CalendarDatePicker Classes="cell" SelectedDate="{Binding EffectiveFrom, Converter={x:Static vm:Converters.DateText}}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Machine time, $ per hour" Binding="{Binding MachineHourRate}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Your time, $ per hour" Binding="{Binding OwnHourRate}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Waste allowance, %" Binding="{Binding WastePercent}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Packaging, $ per order" Binding="{Binding PackagingPerOrder}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Packaging, $ per unit" Binding="{Binding PackagingPerUnit}" CellStyleClasses="num"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel Classes="buttons" Margin="0">
+                  <Button Content="Add a change from today" Command="{Binding AddCostVersionCommand}"/>
+                  <Button Classes="danger" Content="Delete row" Command="{Binding DeleteCostVersionCommand}"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="h2" Text="Etsy fee rates"/>
+                <TextBlock Classes="hint" Margin="0" Text="Starts with the US rates as of 2026; check them against Etsy's fee page and change them if yours differ. Used for pricing estimates and the listing fee per order; real fees always come from your statements. Add a row on the date your shop moved to 12% Offsite Ads."/>
+                <DataGrid AutomationProperties.Name="Etsy fee rates, by start date" ItemsSource="{Binding FeeVersions}" SelectedItem="{Binding SelectedFee}" MaxHeight="190" CanUserSortColumns="False" HorizontalAlignment="Left">
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="From" Width="160"><DataGridTemplateColumn.CellTemplate><DataTemplate x:DataType="vm:FeeVersionRow"><CalendarDatePicker Classes="cell" SelectedDate="{Binding EffectiveFrom, Converter={x:Static vm:Converters.DateText}}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Transaction %" Binding="{Binding TransactionPercent}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Processing %" Binding="{Binding ProcessingPercent}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Processing $" Binding="{Binding ProcessingFixed}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Listing $ per unit" Binding="{Binding ListingFee}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Offsite Ads %" Binding="{Binding OffsiteAdsPercent}" CellStyleClasses="num"/>
+                    <DataGridTextColumn Header="Ads cap $" Binding="{Binding OffsiteAdsCap}" CellStyleClasses="num"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel Classes="buttons" Margin="0">
+                  <Button Content="Add a change from today" Command="{Binding AddFeeVersionCommand}"/>
+                  <Button Classes="danger" Content="Delete row" Command="{Binding DeleteFeeVersionCommand}"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </TabItem>
+      <TabItem Header="Program settings">
+        <DockPanel DataContext="{Binding Settings}" x:DataType="vm:SettingsViewModel">
+          <Border DockPanel.Dock="Bottom" Classes="bar" Margin="0,8,8,12">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="primary" Content="Save settings" Command="{Binding SaveCommand}"/>
+              <TextBlock DockPanel.Dock="Right" Classes="unsaved" Margin="0,0,12,0" IsVisible="{Binding Edit.IsDirty}"/>
+              <TextBlock Classes="muted" VerticalAlignment="Center" Text="The update check and the number of backups take effect when you save. Appearance and folders change right away."/>
+            </DockPanel>
+          </Border>
+          <ScrollViewer>
+            <StackPanel Spacing="16" Margin="0,0,8,8">
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h2" Text="Appearance"/>
+                <StackPanel Orientation="Horizontal" Spacing="24">
+                  <StackPanel>
+                    <TextBlock Classes="label" Text="Light or dark"/>
+                    <ComboBox Width="200" ItemsSource="{Binding ThemeModes}" SelectedIndex="{Binding ThemeModeIndex}"/>
+                  </StackPanel>
+                  <StackPanel>
+                    <TextBlock Classes="label" Text="Color"/>
+                    <ComboBox Width="200" ItemsSource="{Binding AccentColors}" SelectedIndex="{Binding AccentIndex}"/>
+                  </StackPanel>
+                </StackPanel>
+                <TextBlock Classes="hint" Margin="0" Text="Changes right away. The first choice follows your computer's own light/dark setting."/>
+                <StackPanel>
+                  <CheckBox IsChecked="{Binding ShowTableFocusOutline}" Content="Outline the table cell that has keyboard focus"/>
+                  <TextBlock Classes="hint" TextWrapping="Wrap" Text="Off: only the selected row is highlighted. On: a box also marks the exact cell, which helps if you move around tables with the arrow and Tab keys. Changes right away."/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="h2" Text="Updates"/>
+                <CheckBox IsChecked="{Binding CheckForUpdates}" Content="Check GitHub for a newer version when the app starts"/>
+                <TextBlock Classes="hint" Margin="0" Text="It only says a newer version exists; it never downloads anything."/>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h2" Text="Data and backups"/>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Data folder"/>
+                  <TextBlock Text="{Binding DataFolder}" TextWrapping="Wrap"/>
+                  <StackPanel Classes="buttons" Margin="0,6,0,0" IsVisible="{Binding DataFolderChangeable}">
+                    <Button Content="Move to another folder…" Command="{Binding MoveDataFolderCommand}"/>
+                    <Button Content="Use the default folder" Command="{Binding UseDefaultDataFolderCommand}" IsVisible="{Binding DataFolderIsCustom}"/>
+                  </StackPanel>
+                  <TextBlock Classes="hint" TextWrapping="Wrap" IsVisible="{Binding DataFolderChangeable}"
+                             Text="Everything the app keeps: your orders and statements, costs, settings, the encrypted Etsy connection, backups and logs. Moving copies it all to the new folder and leaves the old copy as it was."/>
+                  <TextBlock Classes="hint" TextWrapping="Wrap" IsVisible="{Binding DataFolderLocked}"
+                             Text="Set by the CRAFTING_MARGINS_DATA environment variable, so it can't be changed here."/>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Backups to keep"/>
+                  <NumericUpDown Width="150" HorizontalAlignment="Left" Value="{Binding BackupsToKeep}" Minimum="0" Maximum="10" FormatString="0"/>
+                  <TextBlock Classes="hint" TextWrapping="Wrap" Text="0 to 10. A backup is made when the app closes, but only if something changed since the last one, and the newest ones are kept up to this number. 0 turns backups off: none are made when the app closes (backups you already have are left alone, and Back up now still works). Each backup includes your category rules and shop settings."/>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="Backups go to"/>
+                  <TextBlock Text="{Binding BackupFolderText}" TextWrapping="Wrap"/>
+                  <StackPanel Classes="buttons" Margin="0,6,0,0">
+                    <Button Content="Choose a folder…" Command="{Binding ChooseBackupFolderCommand}"/>
+                    <Button Content="Use the default" Command="{Binding DefaultBackupFolderCommand}" IsVisible="{Binding BackupFolderIsCustom}"/>
+                  </StackPanel>
+                  <TextBlock Classes="hint" TextWrapping="Wrap" Text="Pick a OneDrive, Dropbox or USB folder so a dead disk doesn't take your backups with it."/>
+                </StackPanel>
+                <ListBox AutomationProperties.Name="Backups" ItemsSource="{Binding BackupFiles}" SelectedItem="{Binding SelectedBackup}" MaxHeight="130" MaxWidth="460" HorizontalAlignment="Left" MinWidth="460"/>
+                <StackPanel Classes="buttons" Margin="0">
+                  <Button Content="Back up now" Command="{Binding BackupNowCommand}"/>
+                  <Button Content="Restore selected backup…" Command="{Binding RestoreBackupCommand}"/>
+                  <Button Content="Open data folder" Command="{Binding OpenDataFolderCommand}"/>
+                  <Button Classes="danger" Content="Delete all data…" Command="{Binding DeleteAllDataCommand}"/>
+                </StackPanel>
+                <StackPanel Spacing="4" Margin="0,8,0,0" IsVisible="{Binding !$parent[Window].((vm:MainViewModel)DataContext).IsDemo}">
+                  <TextBlock Classes="label" Text="Demo shop"/>
+                  <TextBlock Classes="hint" Margin="0" TextWrapping="Wrap" Text="A made-up shop with almost two years of sales, for trying features without touching your own numbers. Your data stays exactly as it is."/>
+                  <Button HorizontalAlignment="Left" Content="Open the demo shop" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenDemoCommand}"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </TabItem>
+      <TabItem Header="Etsy API">
+        <DockPanel DataContext="{Binding EtsyApi}" x:DataType="vm:EtsyApiViewModel">
+        <ScrollViewer>
+          <StackPanel Spacing="16" Margin="0,0,8,24">
+            <StackPanel>
+              <TextBlock Classes="h1" Text="Etsy API (optional)"/>
+              <TextBlock Classes="pageSub" TextWrapping="Wrap" Text="Instead of downloading CSV files, the app can pull your orders, listings and fees straight from Etsy. It uses a free Etsy app that you create for your own shop, and it only ever reads. Setting it up takes about 10 minutes, once."/>
+            </StackPanel>
+
+            <!-- Where you are -->
+            <Border Classes="bar">
+              <Grid ColumnDefinitions="Auto,*">
+                <Ellipse Width="12" Height="12" Margin="0,0,10,0" VerticalAlignment="Center" Fill="{Binding IsConnected, Converter={x:Static vm:Converters.GoodBad}}"/>
+                <TextBlock Grid.Column="1" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" Text="{Binding ConnectionText}"/>
+              </Grid>
+            </Border>
+
+            <!-- Busy line -->
+            <Border Classes="bar" IsVisible="{Binding IsBusy}">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <ProgressBar IsIndeterminate="True" Width="120" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding ProgressText}" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Setup: steps 1-3.  Folded away once connected. -->
+            <Expander Header="Set up the connection" IsExpanded="{Binding ShowSetup}" HorizontalAlignment="Stretch">
+              <StackPanel Spacing="16" Margin="0,8,0,0">
+
+                <!-- Step 1 -->
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <TextBlock Classes="h2" Text="Step 1.  Create your Etsy app"/>
+                    <TextBlock TextWrapping="Wrap" Text="Open Etsy's developer page while signed in to your shop, and choose Create a new app. Fill it in like this:"/>
+                    <Grid ColumnDefinitions="190,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8" Margin="8,0,0,0">
+                      <TextBlock FontWeight="SemiBold" Text="App type"/>
+                      <TextBlock Grid.Column="1" TextWrapping="Wrap" Text="Seller App (tools for your own shop). Etsy usually approves it within minutes."/>
+                      <TextBlock Grid.Row="1" FontWeight="SemiBold" Text="Name"/>
+                      <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Text="Anything of your own, e.g. &quot;My shop bookkeeping&quot;. Don't use the word Etsy."/>
+                      <TextBlock Grid.Row="2" FontWeight="SemiBold" Text="Purpose"/>
+                      <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" Text="Bookkeeping and profit tracking for my own shop; read-only."/>
+                      <TextBlock Grid.Row="3" FontWeight="SemiBold" Text="Callback URL" VerticalAlignment="Center"/>
+                      <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <TextBox Width="340" IsReadOnly="True" Text="{Binding RedirectUri}"/>
+                        <Button Content="Copy" Command="{Binding CopyRedirectUriCommand}"/>
+                      </StackPanel>
+                    </Grid>
+                    <Button Classes="primary" HorizontalAlignment="Left" Content="Open Etsy's developer page" Command="{Binding OpenDeveloperPortalCommand}"/>
+                  </StackPanel>
+                </Border>
+
+                <!-- Step 2 -->
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <TextBlock Classes="h2" Text="Step 2.  Paste your app's keys"/>
+                    <TextBlock TextWrapping="Wrap" Text="When Etsy approves the app, its page shows a keystring and a shared secret. Copy each one here."/>
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                      <StackPanel>
+                        <TextBlock Classes="label" Text="Keystring"/>
+                        <TextBox Width="340" Text="{Binding Keystring}"/>
+                      </StackPanel>
+                      <StackPanel>
+                        <TextBlock Classes="label" Text="Shared secret"/>
+                        <TextBox Width="340" Text="{Binding SharedSecret}" PasswordChar="●" PlaceholderText="{Binding SharedSecretHint}"/>
+                      </StackPanel>
+                    </StackPanel>
+                    <TextBlock Classes="hint" Margin="0" TextWrapping="Wrap" Text="{Binding SecretNote}"/>
+                    <Button Classes="primary" HorizontalAlignment="Left" Content="Save keys" Command="{Binding SaveKeysCommand}"/>
+                  </StackPanel>
+                </Border>
+
+                <!-- Step 3 -->
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <TextBlock Classes="h2" Text="Step 3.  Connect"/>
+                    <TextBlock TextWrapping="Wrap"><Run Text="Your browser opens Etsy's own page to approve the connection; the app never sees your Etsy password. It asks only to read: "/><Run Text="{Binding ScopesText}"/><Run Text="."/></TextBlock>
+                    <Button Classes="primary" HorizontalAlignment="Left" Content="Connect to Etsy…" Command="{Binding ConnectCommand}" IsEnabled="{Binding !IsBusy}"/>
+                    <Border Classes="bar" IsVisible="{Binding WaitingForBrowser}">
+                      <StackPanel Spacing="8">
+                        <TextBlock TextWrapping="Wrap" Text="Approve the request in your browser; the app picks up Etsy's answer by itself. If your browser shows an error page instead (&quot;can't connect&quot; or similar), copy the whole address from its address bar and paste it here:"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBox Width="560" Text="{Binding PastedAddress}" PlaceholderText="http://localhost:3003/callback?code=…&amp;state=…"/>
+                          <Button Classes="primary" Content="Finish" Command="{Binding FinishWithPastedAddressCommand}"/>
+                          <Button Content="Cancel" Command="{Binding CancelConnectCommand}"/>
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Expander>
+
+            <!-- Step 4 / day to day -->
+            <Border Classes="card">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h2" Text="Sync"/>
+                <TextBlock TextWrapping="Wrap" Text="Pulls orders (with card fees), your active listings with the price of every option, and your Etsy payment ledger. Once connected it also runs by itself when the app starts, if the last sync is more than 6 hours old."/>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <Button Classes="primary" Content="Sync now" Command="{Binding SyncNowCommand}" IsEnabled="{Binding IsConnected}"/>
+                  <TextBlock Classes="muted" Text="{Binding LastSyncText}" VerticalAlignment="Center"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Advanced -->
+            <Expander Header="Advanced" HorizontalAlignment="Stretch">
+              <StackPanel Spacing="16" Margin="0,8,0,0">
+                <Border Classes="card">
+                  <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Sync settings"/>
+                    <StackPanel>
+                      <TextBlock Classes="label" Text="Sync orders from (yyyy-mm-dd)"/>
+                      <StackPanel Orientation="Horizontal" Spacing="8"><TextBox Width="150" Text="{Binding SyncFrom}" PlaceholderText="yyyy-mm-dd"/><Button Content="Save date" Command="{Binding SaveSyncSettingsCommand}"/></StackPanel>
+                    </StackPanel>
+                    <StackPanel>
+                      <CheckBox IsChecked="{Binding UseApiLedger}" Content="Fill months that have no statement CSV from the API ledger"/>
+                      <TextBlock Classes="hint" TextWrapping="Wrap" Text="Statement CSVs always win over API data. Etsy doesn't publish what its ledger entry types mean, so run Ledger compare (below) on a month you have a CSV for before turning this on. Until then, API lines show as unknown under Needs attention on Home."/>
+                    </StackPanel>
+                    <StackPanel>
+                      <TextBlock Classes="label" Text="Callback URL"/>
+                      <TextBox Width="460" HorizontalAlignment="Left" Text="{Binding RedirectUri}"/>
+                      <TextBlock Classes="hint" TextWrapping="Wrap" Text="Must match the one on your Etsy app letter for letter. If Etsy won't accept http://localhost, use https://localhost:3003/callback on both and save the keys again; you'll then paste the address from your browser in step 3."/>
+                    </StackPanel>
+                    <StackPanel Classes="buttons" Margin="0">
+                      <Button Content="Save callback URL" Command="{Binding SaveKeysCommand}"/>
+                      <Button Content="Disconnect…" Command="{Binding DisconnectCommand}" IsVisible="{Binding IsConnected}"/>
+                      <Button Classes="danger" Content="Remove keys…" Command="{Binding RemoveKeysCommand}"/>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                  <StackPanel Spacing="12">
+                    <TextBlock Classes="h2" Text="Ledger compare"/>
+                    <TextBlock TextWrapping="Wrap" Text="Pulls one month from the API and lines it up against that month's statement CSV, line by line. Each API entry type takes the category of the statement lines it matches. Nothing is guessed: a type that doesn't match cleanly stays Unknown."/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <ComboBox AutomationProperties.Name="Month to compare" ItemsSource="{Binding CompareMonths}" SelectedItem="{Binding CompareMonth}" Width="140" PlaceholderText="Month"/>
+                      <Button Classes="primary" Content="Compare" Command="{Binding RunCompareCommand}" IsEnabled="{Binding IsConnected}"/>
+                    </StackPanel>
+                    <StackPanel Spacing="10" IsVisible="{Binding CompareRan}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Ellipse Width="10" Height="10" VerticalAlignment="Top" Margin="0,4,0,0"
+                                 Fill="{Binding ComparePassed, Converter={x:Static vm:Converters.GoodBad}}"/>
+                        <TextBlock Text="{Binding CompareSummary}" TextWrapping="Wrap" MaxWidth="940"/>
+                      </StackPanel>
+                      <DataGrid AutomationProperties.Name="Ledger entry types and their categories" ItemsSource="{Binding CompareTypes}" IsReadOnly="True" MaxHeight="280" HorizontalAlignment="Left">
+                        <DataGrid.Columns>
+                          <DataGridTextColumn Header="API type" Binding="{Binding LedgerType}" CellStyleClasses="strong"/>
+                          <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="300"/>
+                          <DataGridTextColumn Header="Lines" Binding="{Binding Lines}" CellStyleClasses="num"/>
+                          <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=N2}" CellStyleClasses="num"/>
+                          <DataGridTextColumn Header="Category" Binding="{Binding Category}"/>
+                          <DataGridTextColumn Header="How" Binding="{Binding Note}" Foreground="{DynamicResource MutedBrush}"/>
+                        </DataGrid.Columns>
+                      </DataGrid>
+                      <TextBlock Classes="label" Text="Lines with no match" IsVisible="{Binding HasUnmatched}"/>
+                      <DataGrid AutomationProperties.Name="Lines that did not match" ItemsSource="{Binding CompareUnmatched}" IsReadOnly="True" MaxHeight="220" HorizontalAlignment="Left" IsVisible="{Binding HasUnmatched}">
+                        <DataGrid.Columns>
+                          <DataGridTextColumn Header="Only in" Binding="{Binding Side}"/>
+                          <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=yyyy-MM-dd}"/>
+                          <DataGridTextColumn Header="Type" Binding="{Binding Type}"/>
+                          <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="320"/>
+                          <DataGridTextColumn Header="Net" Binding="{Binding Net, StringFormat=N2}" CellStyleClasses="num"/>
+                        </DataGrid.Columns>
+                      </DataGrid>
+                      <StackPanel Classes="buttons" Margin="0">
+                        <Button Classes="primary" Content="Use these categories" Command="{Binding ApplyRulesCommand}" IsEnabled="{Binding CanApplyRules}"/>
+                      </StackPanel>
+                      <TextBlock Classes="hint" Margin="0" TextWrapping="Wrap" Text="Saves the learned categories (rows not marked Unknown) to categories.json, next to your own. Comparing another month later can add more."/>
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Expander>
+          </StackPanel>
+        </ScrollViewer>
+        </DockPanel>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</UserControl>

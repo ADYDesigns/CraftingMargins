@@ -1,0 +1,155 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CraftingMargins.App.Views.TermsWindow"
+        Icon="/Assets/CraftingMargins.ico"
+        Title="Welcome to Crafting Margins"
+        Width="860" Height="680" MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource PageBrush}">
+
+  <Window.Styles>
+    <!-- Summary cards: white, rounded, with a teal bar down the left side. -->
+    <Style Selector="Border.point">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource BrandBrush}"/>
+      <Setter Property="BorderThickness" Value="4,0,0,0"/>
+      <Setter Property="Padding" Value="16,12"/>
+    </Style>
+    <Style Selector="TextBlock.pointTitle">
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}"/>
+      <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+    <Style Selector="TextBlock.body">
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="LineHeight" Value="20"/>
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+    <Style Selector="TextBlock.hint">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="Margin" Value="0,4,0,0"/>
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+    <!-- Header band -->
+    <Border DockPanel.Dock="Top" Background="{DynamicResource HeaderBarBrush}" Padding="32,26,32,24">
+      <StackPanel Spacing="6">
+        <TextBlock Text="Welcome to Crafting Margins" Foreground="{DynamicResource OnBrandBrush}" FontSize="26" FontWeight="SemiBold"/>
+        <TextBlock Text="See what every Etsy sale really earned, after fees, ads, labels and materials."
+                   Foreground="{DynamicResource ChipTextBrush}" FontSize="15" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Footer: accept + buttons -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="32,14">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Name="DemoButton" Classes="link" Content="Explore a demo shop first" Margin="0,0,12,0" VerticalAlignment="Center"
+                  ToolTip.Tip="Look around a made-up shop. You'll come back here when you leave it."/>
+          <Button Name="QuitButton" Content="Quit" MinWidth="90" HorizontalContentAlignment="Center"/>
+          <Button Name="AcceptButton" Classes="primary" Content="Continue" MinWidth="120" HorizontalContentAlignment="Center"
+                  IsEnabled="{Binding #AcceptCheck.IsChecked}"/>
+        </StackPanel>
+        <CheckBox Name="AcceptCheck" VerticalAlignment="Center" Content="I've read and accept the terms"/>
+      </DockPanel>
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="32,24,32,28" Spacing="12">
+
+        <Border Classes="point">
+          <StackPanel>
+            <TextBlock Classes="pointTitle" Text="Your data stays on this computer"/>
+            <TextBlock Classes="body" Name="FolderText"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="point">
+          <StackPanel>
+            <TextBlock Classes="pointTitle" Text="Not tax or financial advice"/>
+            <TextBlock Classes="body" Text="It does the math on your Etsy data. Check important numbers against your Etsy statements and ask a tax professional about your filing."/>
+          </StackPanel>
+        </Border>
+        <Border Classes="point">
+          <StackPanel>
+            <TextBlock Classes="pointTitle" Text="Free and open source"/>
+            <TextBlock Classes="body" Text="Provided free by ADY Designs, LLC under the GNU GPL v3, with no warranty and no support. Bug reports go to the project's GitHub page, with no promise of a reply."/>
+          </StackPanel>
+        </Border>
+        <Border Classes="point">
+          <StackPanel>
+            <TextBlock Classes="pointTitle" Text="Made for US shops"/>
+            <TextBlock Classes="body" Text="It was designed for Etsy shops in the United States that are paid in US dollars. You are welcome to use it elsewhere, but VAT, other currencies and the fees Etsy charges outside the US were not taken into account, so files from those shops may not import and the numbers may not be right."/>
+          </StackPanel>
+        </Border>
+
+        <Expander Header="Read the full terms" HorizontalAlignment="Stretch" Margin="0,4,0,0">
+          <StackPanel Spacing="10" Margin="4">
+            <TextBlock Classes="label" Text="Privacy"/>
+            <TextBlock Classes="body" Name="PrivacyText"/>
+            <TextBlock Classes="label" Text="Warranty disclaimer"/>
+            <TextBlock Classes="body" FontSize="12" Text="THIS APPLICATION IS SOLELY PROVIDED BY ADY DESIGNS, LLC (THE &quot;APPLICATION DEVELOPER&quot;). YOU ACKNOWLEDGE THAT ETSY, INC. AND ITS AFFILIATES ARE NOT THE APPLICATION DEVELOPER, DO NOT PROVIDE THE APPLICATION SERVICE, AND MAKE NO WARRANTIES OF ANY KIND WITH RESPECT TO THE APPLICATION OR DATA ACCESSED THROUGH IT. The software is free and open source under the GNU General Public License v3 and comes with NO WARRANTY, to the extent permitted by law."/>
+            <TextBlock Classes="label" Text="Not tax or financial advice"/>
+            <TextBlock Classes="body" Text="Crafting Margins does arithmetic on your Etsy data. It is not tax, accounting, legal or financial advice."/>
+            <TextBlock Classes="label" Text="Support"/>
+            <TextBlock Classes="body" Text="This is free software with no support. Bug reports can be left on the project's GitHub Issues page (linked on the About tab), with no promise of a reply or a fix."/>
+          </StackPanel>
+        </Expander>
+
+        <!-- Setup -->
+        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8" Padding="22,18" Margin="0,8,0,0" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1">
+          <StackPanel Spacing="16">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Set up your shop" FontSize="18" FontWeight="SemiBold"/>
+              <TextBlock Classes="hint" Margin="0" Text="You can change any of this later in Settings."/>
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Classes="label" Text="Shop name"/>
+              <TextBox Name="ShopNameBox" PlaceholderText="Your Etsy shop name" MaxWidth="380" HorizontalAlignment="Left" Width="380"/>
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Classes="label" Text="What you make"/>
+              <ComboBox Name="CraftBox" Width="380" HorizontalAlignment="Left"/>
+              <TextBlock Classes="hint" Text="Sets a few starting points: the unit materials are measured in, the names of your first expense categories, and whether machine time is tracked."/>
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Classes="label" Text="Offsite Ads rate"/>
+              <StackPanel Orientation="Horizontal" Spacing="24">
+                <RadioButton Name="Ads15" GroupName="ads" Content="15%" IsChecked="True"/>
+                <RadioButton Name="Ads12" GroupName="ads" Content="12%"/>
+              </StackPanel>
+              <TextBlock Classes="hint" Text="Etsy charges 15% on sales from its Offsite Ads, or 12% once your shop has made $10,000 in a year."/>
+              <StackPanel Margin="0,10,0,0" IsVisible="{Binding #Ads12.IsChecked}">
+                <TextBlock Classes="label" Text="When did the 12% rate start?"/>
+                <DatePicker Name="Ads12Date"/>
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel>
+              <TextBlock Classes="label" Text="Profit goal per sale"/>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="$" VerticalAlignment="Center" FontSize="15"/>
+                <NumericUpDown Name="FloorBox" Value="5" Minimum="0" Increment="0.5" FormatString="0.00" Width="150"/>
+              </StackPanel>
+              <TextBlock Classes="hint" Text="The least you want to make on each sale after every Etsy fee, ad and cost. Prices that would make less, even on a sale that came through an Offsite Ad, get flagged."/>
+            </StackPanel>
+
+            <TextBlock Name="ErrorText" Foreground="{DynamicResource BadBrush}" TextWrapping="Wrap" IsVisible="{Binding $self.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Name="AttributionText" Margin="0,8,0,0"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

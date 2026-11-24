@@ -1,0 +1,294 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CraftingMargins.App.ViewModels"
+             xmlns:core="using:CraftingMargins.Core"
+             xmlns:local="using:CraftingMargins.App"
+             x:Class="CraftingMargins.App.Views.HomeView"
+             x:DataType="vm:MainViewModel">
+  <ScrollViewer>
+    <StackPanel Spacing="16" Margin="8,16,8,24">
+      <!-- New version (GitHub update check; never downloads anything) -->
+      <Border Classes="bar" IsVisible="{Binding NewRelease, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+            <Button Classes="primary" Content="Open the download page" Command="{Binding OpenReleaseCommand}"/>
+            <Button Content="Don't remind me" Command="{Binding SkipReleaseCommand}"/>
+          </StackPanel>
+          <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding NewRelease.Version, StringFormat='Crafting Margins {0} is available.'}"/>
+        </DockPanel>
+      </Border>
+    <StackPanel Spacing="16" DataContext="{Binding Home}" x:DataType="vm:HomeViewModel">
+
+      <!-- Drop zone -->
+      <!-- Big while the shop is empty; a slim bar once there's data (it still takes dropped files). -->
+      <Grid Name="DropZone" DragDrop.AllowDrop="True" Background="Transparent">
+        <Border Background="{DynamicResource BrandLightBrush}" CornerRadius="12"/>
+        <Rectangle Stroke="{DynamicResource BrandTextBrush}" StrokeThickness="2" StrokeDashArray="5,4" RadiusX="12" RadiusY="12"/>
+        <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24,20" IsVisible="{Binding !HasData}">
+          <Path Width="34" Height="34" Stretch="Uniform" HorizontalAlignment="Center"
+                Stroke="{DynamicResource BrandTextBrush}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeJoin="Round"
+                Data="M12,3 L12,15 M7,8 L12,3 L17,8 M4,15 L4,20 L20,20 L20,15"/>
+          <TextBlock HorizontalAlignment="Center" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource BrandTextBrush}" Text="Drop your Etsy CSV files here"/>
+          <TextBlock Classes="muted" HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="760"
+                     Text="Monthly statements (Shop Manager → Finances → Monthly statements), plus Sold Orders, Sold Order Items and Currently for sale listings (Settings → Options → Download Data). Drop several at once; re-importing a month replaces it."/>
+          <Button Name="BrowseButton" Classes="link" HorizontalAlignment="Center" Content="or choose files…"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16,12" IsVisible="{Binding HasData}">
+          <Path Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center"
+                Stroke="{DynamicResource BrandTextBrush}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeJoin="Round"
+                Data="M12,3 L12,15 M7,8 L12,3 L17,8 M4,15 L4,20 L20,20 L20,15"/>
+          <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource BrandTextBrush}" Text="{Binding DropHint}"/>
+        </StackPanel>
+      </Grid>
+
+      <!-- Getting started: ticks itself off; hides when everything is done (or dismissed) -->
+      <Border Classes="card" IsVisible="{Binding ShowChecklist}">
+        <StackPanel Spacing="10">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="link" Padding="0" Content="Hide this" Command="{Binding HideChecklistCommand}"/>
+            <TextBlock Classes="h2" Text="{Binding ChecklistTitle}"/>
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding Checklist}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ChecklistItem">
+                <Grid ColumnDefinitions="30,*,Auto" Margin="0,4">
+                  <Border Width="20" Height="20" CornerRadius="10" VerticalAlignment="Top" Margin="0,1,0,0"
+                          BorderThickness="2" BorderBrush="{Binding Done, Converter={x:Static vm:Converters.GoodBad}}"
+                          Background="{Binding Done, Converter={x:Static vm:Converters.GoodBadPale}}">
+                    <TextBlock Text="{Binding Mark}" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource GoodBrush}"/>
+                  </Border>
+                  <StackPanel Grid.Column="1">
+                    <TextBlock FontWeight="SemiBold" Text="{Binding Text}" Opacity="{Binding Done, Converter={x:Static vm:Converters.DimIfTrue}}"/>
+                    <TextBlock Classes="hint" Margin="0,2,0,0" Text="{Binding Hint}" IsVisible="{Binding NotDone}"/>
+                  </StackPanel>
+                  <Button Grid.Column="2" VerticalAlignment="Top" Content="Go" IsVisible="{Binding NotDone}"
+                          Command="{Binding $parent[ItemsControl].((vm:HomeViewModel)DataContext).GoCommand}" CommandParameter="{Binding}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Tiles -->
+      <Grid ColumnDefinitions="*,16,*,16,*,16,*">
+        <Border Classes="card">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Classes="tileLabel" Text="PROFIT THIS YEAR"/>
+              <TextBlock Classes="tileValue" Text="{Binding YearProfit}"/>
+              <TextBlock Classes="hint" Text="{Binding YearCompare}" IsVisible="{Binding YearCompare, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </StackPanel>
+            <Border Grid.Column="1" Classes="tileIcon"><Path Classes="tileIcon" Data="M3,17 L9,11 L13,15 L21,7 M15,7 L21,7 L21,13"/></Border>
+          </Grid>
+        </Border>
+        <Border Grid.Column="2" Classes="card">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Classes="tileLabel" Text="{Binding MonthLabel, StringFormat='PROFIT IN {0}'}"/>
+              <TextBlock Classes="tileValue" Text="{Binding MonthProfit}"/>
+              <TextBlock Classes="hint" Text="{Binding MonthCompare}" IsVisible="{Binding MonthCompare, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            </StackPanel>
+            <Border Grid.Column="1" Classes="tileIcon"><Path Classes="tileIcon" Data="M4,6 L20,6 L20,20 L4,20 Z M4,10 L20,10 M8,3 L8,7 M16,3 L16,7"/></Border>
+          </Grid>
+        </Border>
+        <Border Grid.Column="4" Classes="card">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Classes="tileLabel" Text="SELF-TEST"/>
+              <TextBlock FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,12,8,0" Text="{Binding SelfTest}"
+                         Foreground="{Binding SelfTestOk, Converter={x:Static vm:Converters.GoodBad}}"/>
+            </StackPanel>
+            <Border Grid.Column="1" Classes="tileIcon" Background="{Binding SelfTestOk, Converter={x:Static vm:Converters.GoodBadPale}}">
+              <Path Classes="tileIcon" Stroke="{Binding SelfTestOk, Converter={x:Static vm:Converters.GoodBad}}" Data="M5,12 L10,17 L19,7"/>
+            </Border>
+          </Grid>
+        </Border>
+        <Border Grid.Column="6" Classes="card">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Classes="tileLabel" Text="BELOW YOUR PROFIT GOAL"/>
+              <TextBlock FontSize="15" FontWeight="SemiBold" Margin="0,12,0,0" Text="{Binding BelowFloor}"
+                         Foreground="{Binding BelowFloorOk, Converter={x:Static vm:Converters.GoodBad}}"/>
+              <Button Name="GoPricingButton" Classes="link" Padding="0" Margin="0,8,0,0" Content="Open the pricing check"/>
+            </StackPanel>
+            <Border Grid.Column="1" Classes="tileIcon" Background="{Binding BelowFloorOk, Converter={x:Static vm:Converters.GoodBadPale}}">
+              <Path Classes="tileIcon" Stroke="{Binding BelowFloorOk, Converter={x:Static vm:Converters.GoodBad}}" Data="M3,12 L12,3 L21,3 L21,12 L12,21 Z M16.5,7.5 L16.6,7.6"/>
+            </Border>
+          </Grid>
+        </Border>
+      </Grid>
+
+      <!-- Suggestions: facts from your own numbers, each with where to look and a way to hide it -->
+      <Border Classes="card" IsVisible="{Binding HasSuggestions}">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Border Classes="tileIcon" Width="30" Height="30" CornerRadius="15">
+              <Path Classes="tileIcon" Width="15" Height="15" Data="M9,18 L15,18 M10,21 L14,21 M12,3 C8,3 6,6 6,9 C6,11.5 7.5,13 9,14.5 L9,16 L15,16 L15,14.5 C16.5,13 18,11.5 18,9 C18,6 16,3 12,3 Z"/>
+            </Border>
+            <TextBlock Classes="h2" VerticalAlignment="Center" Text="Suggestions"/>
+          </StackPanel>
+          <ItemsControl ItemsSource="{Binding SuggestionList}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="core:Suggestion">
+                <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="0,10,0,10">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="3" Margin="0,0,16,0">
+                      <TextBlock FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding Title}"/>
+                      <TextBlock Classes="hint" Margin="0" TextWrapping="Wrap" Text="{Binding Detail}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+                      <Button Content="Show me" Command="{Binding $parent[ItemsControl].((vm:HomeViewModel)DataContext).ShowMeCommand}" CommandParameter="{Binding}"/>
+                      <Button Classes="link" Padding="6,0" VerticalAlignment="Center" Content="Hide"
+                              ToolTip.Tip="Hide this until the numbers behind it change"
+                              Command="{Binding $parent[ItemsControl].((vm:HomeViewModel)DataContext).HideOneCommand}" CommandParameter="{Binding}"/>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="hint" Margin="0" TextWrapping="Wrap" Text="Worked out from your own sales and costs. They're observations, not advice: what to do about them is up to you."/>
+        </StackPanel>
+      </Border>
+
+      <!-- Monthly profit chart -->
+      <Border Classes="card" IsVisible="{Binding HasData}">
+        <Grid ColumnDefinitions="*,28,300">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="h2" Text="{Binding ChartTitle}"/>
+            <local:BarChart Height="250" Bars="{Binding ProfitChart}"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Spacing="8">
+            <TextBlock Classes="h2" Text="{Binding YearSplitTitle}"/>
+            <local:DonutChart Height="150" Slices="{Binding YearSplit.Slices}" CenterText="{Binding YearSplit.Center}"
+                              CenterSubText="{Binding YearSplit.CenterSub}" CenterBad="{Binding YearSplit.IsLoss}"/>
+            <ItemsControl ItemsSource="{Binding YearSplit.Rows}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:SplitRow">
+                <Grid ColumnDefinitions="18,*,Auto,46" Margin="0,2">
+                  <Border Width="11" Height="11" CornerRadius="2" Background="{Binding Color}" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="12"/>
+                  <TextBlock Grid.Column="2" Text="{Binding Amount}" FontSize="12" HorizontalAlignment="Right"/>
+                  <TextBlock Grid.Column="3" Text="{Binding Share}" FontSize="12" HorizontalAlignment="Right" Foreground="{DynamicResource MutedBrush}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+            <TextBlock Classes="hint" Margin="0" TextWrapping="Wrap" Text="{Binding YearSplit.Summary}"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+
+      <!-- Last import -->
+      <Border Classes="card" Padding="14,10" IsVisible="{Binding HasImportResults}">
+        <StackPanel Spacing="2">
+          <TextBlock Classes="h2" Text="Last import"/>
+          <ScrollViewer MaxHeight="190"><ItemsControl ItemsSource="{Binding ImportResults}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ImportLine">
+                <Grid ColumnDefinitions="20,Auto,*" Margin="0,3">
+                  <Ellipse Classes="dot" Fill="{Binding Ok, Converter={x:Static vm:Converters.GoodBad}}"/>
+                  <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding FileName}" Margin="0,0,12,0"/>
+                  <TextBlock Grid.Column="2" Classes="muted" Text="{Binding Summary}"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl></ScrollViewer>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+    <!-- Needs attention: only shows when something does.  The header button jumps here. -->
+    <StackPanel Name="AttentionSection" Spacing="16" DataContext="{Binding Attention}" x:DataType="vm:AttentionViewModel" IsVisible="{Binding !AllClear}">
+      <StackPanel>
+        <TextBlock Classes="pageTitle" Text="Needs attention"/>
+        <TextBlock Classes="pageSub" Text="{Binding Summary}"/>
+      </StackPanel>
+
+      <Border Classes="card" IsVisible="{Binding HasUnmapped}">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Sales with no cost"/>
+          <TextBlock Classes="muted" Text="No rule covers them, or their rule adds up to $0, so their cost isn't counted. Select one, then open its listing's rules."/>
+          <DataGrid AutomationProperties.Name="Sales with no cost" ItemsSource="{Binding Unmapped}" SelectedItem="{Binding SelectedUnmapped}" IsReadOnly="True" MaxHeight="280">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" Width="320"/>
+              <DataGridTextColumn Header="Variations" Binding="{Binding Variations}" Width="320"/>
+              <DataGridTextColumn Header="Units" Binding="{Binding Units}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Why" Binding="{Binding Problem}"/>
+              <DataGridTextColumn Header="Listing" Binding="{Binding ListingId}" Foreground="{DynamicResource MutedBrush}"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <StackPanel Classes="buttons"><Button Classes="primary" Content="Open this listing's cost rules" Command="{Binding GoToRulesCommand}"/></StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" IsVisible="{Binding HasNoMachineTime}">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Parts with no machine time"/>
+          <TextBlock Classes="muted" Text="These parts are used by things you've sold but have 0 machine minutes, so their machine-time cost and the profit-per-hour figures are missing. Enter the minutes each takes (for a 3D print, from your slicer). If your products take no machine time, turn that off under Settings → Shop settings."/>
+          <ItemsControl ItemsSource="{Binding NoMachineTime}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding StringFormat='• {0}'}" Margin="0,1"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <StackPanel Classes="buttons"><Button Classes="primary" Content="Open Parts" Command="{Binding GoToPartsCommand}"/></StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" IsVisible="{Binding HasUnknown}">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Statement lines of an unknown type"/>
+          <TextBlock Classes="muted" Text="The app never guesses. Pick the category these lines belong in and it's remembered for next time."/>
+          <DataGrid AutomationProperties.Name="Statement lines of an unknown type" ItemsSource="{Binding UnknownLines}" SelectedItem="{Binding SelectedUnknown}" IsReadOnly="True" MaxHeight="220">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Type" Binding="{Binding Type}"/>
+              <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="440"/>
+              <DataGridTextColumn Header="Lines" Binding="{Binding Count}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=N2}" CellStyleClasses="num"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <StackPanel IsVisible="{Binding SelectedUnknown, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Classes="label" Text="Lines whose title contains"/>
+            <TextBox Width="440" HorizontalAlignment="Left" Text="{Binding TitleContains}"/>
+            <TextBlock Classes="hint" TextWrapping="Wrap" Text="Starts as the whole title. Shorten it to the part that stays the same (leave out order numbers and names) so one rule covers every line of this kind."/>
+          </StackPanel>
+          <StackPanel Classes="buttons">
+            <ComboBox AutomationProperties.Name="Category for the selected line" ItemsSource="{Binding Categories}" SelectedItem="{Binding CategoryToAssign}" PlaceholderText="Choose a category…" Width="240"/>
+            <Button Classes="primary" Content="Use this category" Command="{Binding AssignCategoryCommand}"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" IsVisible="{Binding HasSuspects}">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Possible personalization"/>
+          <TextBlock Classes="muted" Text="These options look like text the buyer typed (names, messages). Removing them keeps buyer details off your computer and makes cost rules simpler."/>
+          <ListBox AutomationProperties.Name="Possible personalization options" ItemsSource="{Binding SuspectNames}" SelectedItem="{Binding SelectedSuspect}" MaxHeight="150"/>
+          <StackPanel Classes="buttons">
+            <Button Classes="primary" Content="Remove it from all sales" Command="{Binding DropSuspectCommand}"/>
+            <Button Content="It's a real option, keep it" Command="{Binding KeepSuspectCommand}"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="card" IsVisible="{Binding HasProblems}">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="h2" Text="Self-test notes"/>
+          <ItemsControl ItemsSource="{Binding Problems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,2"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

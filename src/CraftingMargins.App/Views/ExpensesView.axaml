@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CraftingMargins.App.ViewModels"
+             xmlns:core="using:CraftingMargins.Core"
+             xmlns:local="using:CraftingMargins.App"
+             x:Class="CraftingMargins.App.Views.ExpensesView"
+             x:DataType="vm:MainViewModel">
+  <DockPanel Margin="8,16,8,16" DataContext="{Binding Tax}" x:DataType="vm:TaxViewModel">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+      <TextBlock Classes="pageTitle" Text="Expenses"/>
+      <TextBlock Classes="pageSub" TextWrapping="Wrap" Text="Business purchases that aren't on your Etsy statement: materials, components, boxes, equipment, software. Amounts are what you paid; they feed the Taxes page. Money back from a supplier (a refund or return) goes in as a negative amount."/>
+    </StackPanel>
+    <!-- One scrolling page: expenses at full width, the categories below them. -->
+    <ScrollViewer>
+      <StackPanel Spacing="12" Margin="0,0,8,8">
+        <WrapPanel>
+          <Button Content="Add expense" Command="{Binding AddExpenseCommand}" Margin="0,0,8,6"/>
+          <Button Classes="danger" Content="Delete expense" Command="{Binding DeleteExpenseCommand}" Margin="0,0,8,6"/>
+          <Button Classes="primary" Content="Save expenses" Command="{Binding SaveExpensesCommand}" Margin="0,0,16,6"/>
+          <TextBlock Classes="unsaved" Margin="0,0,16,6" IsVisible="{Binding ExpensesEdit.IsDirty}"/>
+          <TextBlock Classes="muted" VerticalAlignment="Center" Margin="0,0,0,6" Text="{Binding ExpenseSummary}"/>
+        </WrapPanel>
+        <DataGrid AutomationProperties.Name="Expenses" ItemsSource="{Binding Expenses}" SelectedItem="{Binding SelectedExpense}" RowHeight="40" Height="420">
+          <DataGrid.Columns>
+            <DataGridTemplateColumn Header="Date" Width="160" SortMemberPath="Date">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:ExpenseRow">
+                  <CalendarDatePicker Classes="cell" SelectedDate="{Binding Date, Converter={x:Static vm:Converters.DateText}}"/>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Amount $" Binding="{Binding Amount}" CellStyleClasses="num" Width="110"/>
+            <DataGridTemplateColumn Header="Category" Width="240">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate x:DataType="vm:ExpenseRow">
+                  <ComboBox ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding Category}" HorizontalAlignment="Stretch" Margin="4,0"/>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTextColumn Header="Vendor" Binding="{Binding Vendor}" Width="220"/>
+            <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="*" MinWidth="240"/>
+          </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Classes="card" Padding="16,12">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="h2" Text="Categories"/>
+            <TextBlock Classes="hint" Margin="0" TextWrapping="Wrap" Text="'Per sale' marks supplies the app already counts on each sale (materials, components, packaging). The tax summary then counts either the purchases or the per-sale amounts, never both."/>
+            <DataGrid AutomationProperties.Name="Expense categories" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" CanUserSortColumns="False" RowHeight="40" HorizontalAlignment="Left">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="260"/>
+                <DataGridTemplateColumn Header="Schedule C line (suggested)" Width="320">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate x:DataType="vm:ExpenseCategoryRow">
+                      <ComboBox ItemsSource="{Binding LineOptions}" SelectedItem="{Binding ScheduleCLine}" HorizontalAlignment="Stretch" Margin="4,0"/>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Per sale" Width="110">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate x:DataType="vm:ExpenseCategoryRow">
+                      <CheckBox IsChecked="{Binding CountedPerSale}" HorizontalAlignment="Center"/>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+            <WrapPanel>
+              <Button Content="Add" Command="{Binding AddCategoryCommand}" Margin="0,0,8,6"/>
+              <Button Classes="danger" Content="Delete" Command="{Binding DeleteCategoryCommand}" Margin="0,0,8,6"/>
+              <Button Content="Defaults" Command="{Binding ResetCategoriesCommand}" Margin="0,0,8,6"/>
+              <Button Classes="primary" Content="Save categories" Command="{Binding SaveCategoriesCommand}" Margin="0,0,12,6"/>
+              <TextBlock Classes="unsaved" Margin="0,0,0,6" IsVisible="{Binding CategoriesEdit.IsDirty}"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

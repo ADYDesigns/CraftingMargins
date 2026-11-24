@@ -1,0 +1,16 @@
+# How git treats line endings and binary files, so a file doesn't look "changed" just
+# because it was opened on Windows and then on a Mac.
+
+# Text files: stored with LF line endings, and checked out with LF on every system.
+# (Visual Studio, VS Code and the .NET tools are all happy with LF on Windows.)
+* text=auto eol=lf
+
+# Never treat these as text.
+*.png   binary
+*.ico   binary
+*.icns  binary
+*.db    binary
+*.xlsx  binary
+
+# Etsy and app CSV files are data: leave their line endings exactly as they are.
+*.csv   -text

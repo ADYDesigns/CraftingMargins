@@ -1,0 +1,264 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CraftingMargins.App.ViewModels"
+             xmlns:core="using:CraftingMargins.Core"
+             xmlns:local="using:CraftingMargins.App"
+             x:Class="CraftingMargins.App.Views.ProductsView"
+             x:DataType="vm:MainViewModel">
+  <DockPanel Margin="8,16,8,16" DataContext="{Binding Products}" x:DataType="vm:ProductsViewModel">
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+      <Button DockPanel.Dock="Right" VerticalAlignment="Top" Content="Export costs…" Command="{Binding ExportCostsCommand}"
+              ToolTip.Tip="Saves your materials, parts and cost rules as three CSV files you can keep or edit in a spreadsheet. To bring them back, drop the files on the Home tab."/>
+      <StackPanel>
+        <TextBlock Classes="pageTitle" Text="Products and costs"/>
+        <TextBlock Classes="pageSub" Text="What each sale costs you to make: your materials, the parts you make from them, and the rules that link your listings' options to those parts."/>
+      </StackPanel>
+    </DockPanel>
+    <TabControl Classes="sub" SelectedIndex="{Binding SelectedSubTab}" Padding="0,8,0,0">
+
+      <TabItem Header="Listings &amp; cost rules">
+        <Grid ColumnDefinitions="330,16,*">
+          <Border Classes="card" Padding="8">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Classes="hint" Margin="8,4,8,8" TextWrapping="Wrap" Text="Your listings: sold ones first, then ones for sale that haven't sold yet. Red: some sales have no cost, or the listing has no rule yet."/>
+              <ListBox AutomationProperties.Name="Listings" ItemsSource="{Binding Listings}" SelectedItem="{Binding SelectedListing}" BorderThickness="0" Padding="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ListingRow">
+                    <Grid ColumnDefinitions="20,*" Margin="0,2">
+                      <Ellipse Classes="dot" VerticalAlignment="Top" Margin="0,5,0,0" Fill="{Binding IsMapped, Converter={x:Static vm:Converters.GoodBad}}"/>
+                      <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock FontSize="11"><Run Text="{Binding Subline}" Foreground="{DynamicResource MutedBrush}"/><Run Text="  "/><Run Text="{Binding NoCostText}" Foreground="{DynamicResource BadBrush}" FontWeight="SemiBold"/></TextBlock>
+                      </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </DockPanel>
+          </Border>
+
+          <ScrollViewer Grid.Column="2">
+            <StackPanel Spacing="12">
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="h2" Text="{Binding ListingHeader}" TextWrapping="Wrap"/>
+                  <WrapPanel IsVisible="{Binding SelectedListing, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock VerticalAlignment="Center" Margin="0,0,8,0" Text="Packaging per unit for this listing $"/>
+                    <TextBox Width="100" Margin="0,0,8,0" Text="{Binding ListingPackaging}" PlaceholderText="shop-wide"/>
+                    <CheckBox Margin="0,0,12,0" IsChecked="{Binding ListingCostsNothing}" Content="Really costs $0 to make (don't flag it)"/>
+                    <Button Content="Save" Margin="0,0,12,0" Command="{Binding SaveListingPackagingCommand}"/>
+                    <TextBlock Classes="hint" Margin="0,4,0,0" VerticalAlignment="Center" Text="Blank = the per-unit packaging in Settings. Per-order packaging always comes from Settings."/>
+                  </WrapPanel>
+                  <TextBlock Classes="hint" Margin="0" Text="Every rule whose conditions match a sale adds its parts. For example, for a plant pot: 'Pot' when Size = Large; 'Saucer' when Saucer = Yes; 'Feet' multiplied by the number in Sets of Feet. A rule with only a fixed cost suits products you don't print."/>
+                  <StackPanel Classes="buttons">
+                    <Button Content="Add rule" Command="{Binding AddRuleCommand}"/>
+                    <Button Classes="danger" Content="Delete rule" Command="{Binding DeleteRuleCommand}"/>
+                    <Button Content="Check" Command="{Binding RefreshPreviewCommand}"/>
+                    <Button Classes="primary" Content="Save rules" Command="{Binding SaveRulesCommand}"/>
+                    <TextBlock Classes="unsaved" IsVisible="{Binding RulesEdit.IsDirty}"/>
+                  </StackPanel>
+                  <ListBox AutomationProperties.Name="Cost rules for this listing" ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" MaxHeight="170">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:RuleRow">
+                        <TextBlock><Run Text="{Binding Name}" FontWeight="SemiBold"/><Run Text="   "/><Run Text="{Binding Summary}" Foreground="{DynamicResource MutedBrush}"/></TextBlock>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="card" IsVisible="{Binding SelectedRule, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Spacing="12">
+                  <StackPanel Spacing="12" DataContext="{Binding SelectedRule}" x:DataType="vm:RuleRow">
+                    <TextBlock Classes="h2" Text="Edit rule"/>
+                    <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto" RowSpacing="8">
+                      <TextBlock VerticalAlignment="Center" Text="Rule name"/>
+                      <TextBox Grid.Column="1" Text="{Binding Name}" MaxWidth="420" HorizontalAlignment="Left" Width="420"/>
+                      <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Fixed cost per unit ($)"/>
+                      <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding FixedCost}" Minimum="0" Increment="0.25" FormatString="0.00" Width="160" HorizontalAlignment="Left"/>
+                    </Grid>
+                    <TextBlock FontWeight="SemiBold" Text="Applies when"/>
+                    <ItemsControl ItemsSource="{Binding Conditions}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ConditionRow">
+                          <Grid ColumnDefinitions="180,*" Margin="0,3">
+                            <TextBlock VerticalAlignment="Center" Text="{Binding VariationName}"/>
+                            <ComboBox Grid.Column="1" Width="340" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}"/>
+                          </Grid>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock FontWeight="SemiBold" Text="Parts used per unit sold"/>
+                    <DataGrid AutomationProperties.Name="Parts used by this rule" ItemsSource="{Binding Parts}" SelectedItem="{Binding SelectedPart}" MaxHeight="220" CanUserSortColumns="False" RowHeight="42">
+                      <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="Part" Width="280">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:RulePartRow">
+                              <ComboBox ItemsSource="{Binding PartOptions}" SelectedItem="{Binding Part}" HorizontalAlignment="Stretch" Margin="4,0"/>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Quantity" Width="140">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:RulePartRow">
+                              <NumericUpDown Value="{Binding Quantity}" Minimum="0" Increment="1" FormatString="0.##" Margin="4,0"/>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Multiply by the number in" Width="240">
+                          <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:RulePartRow">
+                              <ComboBox ItemsSource="{Binding MultiplyOptions}" SelectedItem="{Binding MultiplyBy}" HorizontalAlignment="Stretch" Margin="4,0"/>
+                            </DataTemplate>
+                          </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                      </DataGrid.Columns>
+                    </DataGrid>
+                  </StackPanel>
+                  <StackPanel Classes="buttons" Margin="0">
+                    <Button Content="Add part" Command="{Binding AddRulePartCommand}"/>
+                    <Button Classes="danger" Content="Remove selected part" Command="{Binding RemoveRulePartCommand}"/>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="card">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="h2" Text="Cost of each option"/>
+                  <TextBlock Classes="hint" Margin="0" Text="Press Check after changing a rule. Options with a red dot have no cost yet. Options the listing offers but that have not sold are listed too."/>
+                  <DataGrid AutomationProperties.Name="Cost of each option" ItemsSource="{Binding Preview}" IsReadOnly="True" MaxHeight="320">
+                    <DataGrid.Columns>
+                      <DataGridTemplateColumn Header="" Width="34">
+                        <DataGridTemplateColumn.CellTemplate>
+                          <DataTemplate x:DataType="vm:PreviewRow">
+                            <Ellipse Classes="dot" HorizontalAlignment="Center" Fill="{Binding Ok, Converter={x:Static vm:Converters.GoodBad}}"/>
+                          </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                      </DataGridTemplateColumn>
+                      <DataGridTextColumn Header="Options" Binding="{Binding Variations}" Width="420"/>
+                      <DataGridTextColumn Header="Units sold" Binding="{Binding Units}" CellStyleClasses="num"/>
+                      <DataGridTextColumn Header="Cost per unit" Binding="{Binding CostPerUnit}" SortMemberPath="Cost" CellStyleClasses="num"/>
+                      <DataGridTextColumn Header="Status" Binding="{Binding Status}" Foreground="{DynamicResource MutedBrush}"/>
+                    </DataGrid.Columns>
+                  </DataGrid>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Parts">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <TextBlock Classes="hint" Margin="0,0,0,4" Text="{Binding PartsHint}"/>
+          <StackPanel Grid.Row="1" Classes="buttons">
+            <Button Content="Add part" Command="{Binding AddPartCommand}"/>
+            <Button Content="New amounts from today" Command="{Binding NewPartWeightsCommand}" ToolTip.Tip="Keeps the amounts used until now for older sales, and lets you enter new ones from today."/>
+            <Button Classes="danger" Content="Delete part" Command="{Binding DeletePartCommand}"/>
+            <Button Classes="primary" Content="Save parts" Command="{Binding SavePartsCommand}"/>
+            <TextBlock Classes="unsaved" IsVisible="{Binding PartsEdit.IsDirty}"/>
+          </StackPanel>
+          <DataGrid Grid.Row="2" Name="PartsGrid" AutomationProperties.Name="Parts" ItemsSource="{Binding Parts}" SelectedItem="{Binding SelectedPart}" CanUserSortColumns="True" RowHeight="40" MinHeight="160">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="" Width="34">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="vm:PartRow">
+                    <Ellipse Classes="dot" HorizontalAlignment="Center" Fill="{Binding TimeOk, Converter={x:Static vm:Converters.GoodBad}}"
+                             ToolTip.Tip="{Binding NeedsMachineTime, Converter={x:Static vm:Converters.MachineTimeTip}}"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="260"/>
+              <DataGridTextColumn Header="What goes into it" Binding="{Binding Recipe}" IsReadOnly="True" Width="320" Foreground="{DynamicResource MutedBrush}"/>
+              <DataGridTextColumn Header="Machine minutes" Binding="{Binding MachineMinutes}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Your minutes" Binding="{Binding OwnMinutes}" CellStyleClasses="num"/>
+              <DataGridTemplateColumn Header="Amounts from" Width="160" SortMemberPath="EffectiveFrom"><DataGridTemplateColumn.CellTemplate><DataTemplate x:DataType="vm:PartRow"><CalendarDatePicker Classes="cell" SelectedDate="{Binding EffectiveFrom, Converter={x:Static vm:Converters.DateText}}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+              <DataGridTextColumn Header="Versions" Binding="{Binding WeightVersions}" IsReadOnly="True" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="SizeToCells" MinWidth="220" Foreground="{DynamicResource MutedBrush}"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <!-- The recipe of the part picked above: one row per material. -->
+          <Border Grid.Row="3" Classes="card" Margin="0,12,0,0" IsVisible="{Binding SelectedPart, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <StackPanel Spacing="8">
+              <StackPanel DataContext="{Binding SelectedPart}" x:DataType="vm:PartRow" Spacing="8">
+                <TextBlock Classes="h2" Text="{Binding Name, StringFormat='What goes into one {0}'}"/>
+                <TextBlock Classes="hint" Margin="0" Text="One row for each material. The amount is in that material's own unit (set on the Materials tab). Things counted by the piece, like magnets or wicks, are materials too, with the unit 'each'."/>
+                <DataGrid AutomationProperties.Name="Materials in this part" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}" MaxHeight="200" CanUserSortColumns="False" RowHeight="42" HorizontalAlignment="Left">
+                  <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="Material" Width="300">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="vm:PartLineRow">
+                          <ComboBox ItemsSource="{Binding MaterialOptions}" SelectedItem="{Binding Material}" HorizontalAlignment="Stretch" Margin="4,0"/>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="Amount" Width="150">
+                      <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="vm:PartLineRow">
+                          <NumericUpDown Value="{Binding Amount}" Minimum="0" Increment="1" FormatString="0.###" Margin="4,0"/>
+                        </DataTemplate>
+                      </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Unit" Binding="{Binding Unit}" IsReadOnly="True" Width="80"/>
+                  </DataGrid.Columns>
+                </DataGrid>
+              </StackPanel>
+              <StackPanel Classes="buttons" Margin="0">
+                <Button Content="Add a material" Command="{Binding AddPartLineCommand}"/>
+                <Button Classes="danger" Content="Remove selected material" Command="{Binding RemovePartLineCommand}"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Materials">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="hint" Margin="0,0,0,4" Text="{Binding MaterialsHint}"/>
+          <StackPanel DockPanel.Dock="Top" Classes="buttons">
+            <Button Content="Add material" Command="{Binding AddMaterialCommand}"/>
+            <Button Content="New price from today" Command="{Binding NewMaterialPriceCommand}"/>
+            <Button Classes="danger" Content="Delete material" Command="{Binding DeleteMaterialCommand}"/>
+            <Button Classes="primary" Content="Save materials" Command="{Binding SaveMaterialsCommand}"/>
+            <TextBlock Classes="unsaved" IsVisible="{Binding MaterialsEdit.IsDirty}"/>
+          </StackPanel>
+          <DataGrid AutomationProperties.Name="Materials" ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" HorizontalAlignment="Left" VerticalAlignment="Top" RowHeight="40">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="260"/>
+              <DataGridTemplateColumn Header="Unit" Width="110" SortMemberPath="Unit">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="vm:MaterialRow">
+                    <ComboBox ItemsSource="{Binding UnitOptions}" SelectedItem="{Binding Unit}" HorizontalAlignment="Stretch" Margin="4,0"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Cost per unit ($)" Binding="{Binding CostPerUnit}" CellStyleClasses="num"/>
+              <DataGridTemplateColumn Header="Price from" Width="160"><DataGridTemplateColumn.CellTemplate><DataTemplate x:DataType="vm:MaterialRow"><CalendarDatePicker Classes="cell" SelectedDate="{Binding EffectiveFrom, Converter={x:Static vm:Converters.DateText}}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+              <DataGridTextColumn Header="Price versions" Binding="{Binding PriceVersions}" IsReadOnly="True" CellStyleClasses="num"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <TabItem Header="Retired options">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="hint" Margin="0,0,0,4" Text="Old orders can use option values you've since renamed (for example Color 'Grey' is now 'Charcoal'). Map each old value to today's so rules match. Leave Listing ID blank to apply it to every listing."/>
+          <StackPanel DockPanel.Dock="Top" Classes="buttons">
+            <Button Content="Add" Command="{Binding AddAliasCommand}"/>
+            <Button Classes="danger" Content="Delete" Command="{Binding DeleteAliasCommand}"/>
+            <Button Classes="primary" Content="Save" Command="{Binding SaveAliasesCommand}"/>
+            <TextBlock Classes="unsaved" IsVisible="{Binding AliasesEdit.IsDirty}"/>
+          </StackPanel>
+          <DataGrid AutomationProperties.Name="Retired options" ItemsSource="{Binding Aliases}" SelectedItem="{Binding SelectedAlias}" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Listing ID (blank = all)" Binding="{Binding ListingId}" Width="190"/>
+              <DataGridTextColumn Header="Option" Binding="{Binding VariationName}" Width="200"/>
+              <DataGridTextColumn Header="Old value" Binding="{Binding OldValue}" Width="240"/>
+              <DataGridTextColumn Header="Current value" Binding="{Binding NewValue}" Width="240"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</UserControl>

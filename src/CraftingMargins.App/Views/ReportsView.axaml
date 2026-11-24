@@ -1,0 +1,169 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CraftingMargins.App.ViewModels"
+             xmlns:core="using:CraftingMargins.Core"
+             xmlns:local="using:CraftingMargins.App"
+             x:Class="CraftingMargins.App.Views.ReportsView"
+             x:DataType="vm:MainViewModel">
+  <DockPanel Margin="8,16,8,16" DataContext="{Binding Reports}" x:DataType="vm:ReportsViewModel">
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+        <ComboBox AutomationProperties.Name="Year for the reports" ItemsSource="{Binding Years}" SelectedItem="{Binding SelectedYear}" Width="130"/>
+        <Button Content="Export to Excel…" Command="{Binding ExportCommand}"/>
+      </StackPanel>
+      <StackPanel>
+        <TextBlock Classes="pageTitle" Text="Reports"/>
+        <TextBlock Classes="pageSub" Text="Which products earn the most, what Offsite Ads cost you, whether shipping pays for itself, and how discounts did."/>
+      </StackPanel>
+    </DockPanel>
+    <TabControl Classes="sub" SelectedIndex="{Binding SelectedSubTab}" Padding="0,8,0,0">
+
+      <TabItem Header="Sales by product">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="hint" Margin="0,0,0,8" Text="{Binding ProductSummary}" TextWrapping="Wrap"/>
+          <Border DockPanel.Dock="Top" Classes="card" Padding="16,10" Margin="0,0,0,8">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="h2" Text="Most profitable listings"/>
+              <local:HBarChart Height="{Binding ProductChartHeight}" Bars="{Binding ProductBars}"/>
+            </StackPanel>
+          </Border>
+          <DataGrid AutomationProperties.Name="Sales by product" ItemsSource="{Binding Products}" IsReadOnly="True" MinHeight="220">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Listing" Binding="{Binding Name}" Width="300"/>
+              <DataGridTemplateColumn Header="Total profit" SortMemberPath="Profit">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="core:ProductSales">
+                    <TextBlock Margin="10,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
+                               Text="{Binding Profit, StringFormat=N2}" Foreground="{Binding Profit, Converter={x:Static vm:Converters.NegativeRed}}"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Orders" Binding="{Binding Orders}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Units" Binding="{Binding Units}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Average" Binding="{Binding AverageProfit, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Worst order" Binding="{Binding WorstOrder, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="From Offsite Ads" Binding="{Binding AdShare, Converter={x:Static vm:Converters.Percent}}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Most sold options" Binding="{Binding TopOptions}" Width="420" Foreground="{DynamicResource MutedBrush}"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <TabItem Header="Ads vs organic">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="hint" Margin="0,0,0,8" Text="{Binding AdSummary}" TextWrapping="Wrap"/>
+          <DataGrid AutomationProperties.Name="Ads versus organic, by month" ItemsSource="{Binding AdRows}" IsReadOnly="True" CanUserSortColumns="False" VerticalAlignment="Top">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Month" Binding="{Binding MonthName}" CellStyleClasses="strong" Width="110"/>
+              <DataGridTextColumn Header="Orders" Binding="{Binding Orders}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="From Offsite Ads" Binding="{Binding AdOrders}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Share" Binding="{Binding AdShare, Converter={x:Static vm:Converters.Percent}}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Avg profit, ad sale" Binding="{Binding AdAverage, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Avg profit, organic" Binding="{Binding OrganicAverage, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Offsite Ads paid" Binding="{Binding OffsiteAdsPaid, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Etsy Ads paid" Binding="{Binding EtsyAdsPaid, StringFormat=N2}" CellStyleClasses="num"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <TabItem Header="Shipping">
+        <Grid RowDefinitions="Auto,Auto,Auto,*">
+          <TextBlock Classes="hint" Margin="0,0,0,8" Text="{Binding ShippingSummary}" TextWrapping="Wrap"/>
+          <DataGrid AutomationProperties.Name="Shipping charged and label costs, by month" Grid.Row="1" ItemsSource="{Binding ShippingRows}" IsReadOnly="True" CanUserSortColumns="False" MaxHeight="300">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Month" Binding="{Binding MonthName}" CellStyleClasses="strong" Width="110"/>
+              <DataGridTextColumn Header="Orders" Binding="{Binding Orders}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Buyers paid" Binding="{Binding Charged, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Labels" Binding="{Binding Labels, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Label adjustments" Binding="{Binding Adjustments, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Paid outside Etsy" Binding="{Binding ExtraShipping, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTemplateColumn Header="Shipping made">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="core:ShippingRow">
+                    <TextBlock Margin="10,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
+                               Text="{Binding Net, StringFormat=N2}" Foreground="{Binding Net, Converter={x:Static vm:Converters.NegativeRed}}"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Not matched to an order" Binding="{Binding Unmatched, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <TextBlock Grid.Row="2" Classes="label" Margin="0,14,0,4" Text="Orders whose label cost more than the buyer paid for shipping (labels matched by amount and ship date)"/>
+          <DataGrid AutomationProperties.Name="Orders whose label cost more than the buyer paid" Grid.Row="3" ItemsSource="{Binding LostOnShipping}" IsReadOnly="True">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Sold" Binding="{Binding SaleDate, StringFormat='{}{0:MMM d, yyyy}'}" SortMemberPath="SaleDate"/>
+              <DataGridTextColumn Header="Order" Binding="{Binding OrderId}"/>
+              <DataGridTextColumn Header="Items" Binding="{Binding Items}" Width="360"/>
+              <DataGridTextColumn Header="Buyer paid" Binding="{Binding ShippingCharged, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Label" Binding="{Binding Label, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Paid outside Etsy" Binding="{Binding ExtraShipping, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Note" Binding="{Binding Status}" Foreground="{DynamicResource MutedBrush}"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Year over year">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,8" Text="{Binding YearSummary}" TextWrapping="Wrap"/>
+          <Border DockPanel.Dock="Top" Classes="card" Padding="16,10" Margin="0,0,0,8">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="h2" Text="Profit by month, this year and last"/>
+              <local:BarChart Height="160" Bars="{Binding YearBars}" Compare="{Binding YearCompareBars}"
+                              BarsLabel="{Binding YearBarsLabel}" CompareLabel="{Binding YearCompareLabel}"/>
+            </StackPanel>
+          </Border>
+          <TextBlock DockPanel.Dock="Bottom" Classes="hint" Margin="0,8,0,0" TextWrapping="Wrap" Text="Each month of the year picked at the top next to the same month a year earlier. Sales are after sales tax, including sales outside Etsy. The total compares only months you have in both years."/>
+          <DataGrid AutomationProperties.Name="Year over year" ItemsSource="{Binding YearRows}" IsReadOnly="True" CanUserSortColumns="False" VerticalAlignment="Top" MinHeight="220">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Month" Binding="{Binding Label}" CellStyleClasses="strong" Width="130"/>
+              <DataGridTextColumn Header="Sales" Binding="{Binding Sales, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Year before" Binding="{Binding LastSales, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Change" Binding="{Binding SalesChange, StringFormat={}{0:+0%;-0%;0%}}" CellStyleClasses="num"/>
+              <DataGridTemplateColumn Header="Profit">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="core:YearRow">
+                    <TextBlock Margin="10,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
+                               Text="{Binding Profit, StringFormat=N2}" Foreground="{Binding Profit, Converter={x:Static vm:Converters.NegativeRed}}"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Year before" Binding="{Binding LastProfit, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Difference" Binding="{Binding ProfitDifference, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Orders" Binding="{Binding Orders}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Year before" Binding="{Binding LastOrders}" CellStyleClasses="num"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+
+      <TabItem Header="Discounted orders">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="hint" Margin="0,0,0,8" Text="{Binding DiscountSummary}" TextWrapping="Wrap"/>
+          <DataGrid AutomationProperties.Name="Discounted orders" ItemsSource="{Binding Discounted}" IsReadOnly="True">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Sold" Binding="{Binding SaleDate, StringFormat='{}{0:MMM d, yyyy}'}" SortMemberPath="SaleDate"/>
+              <DataGridTextColumn Header="Order" Binding="{Binding OrderId}"/>
+              <DataGridTextColumn Header="Items" Binding="{Binding Items}" Width="320"/>
+              <DataGridTemplateColumn Header="Profit" SortMemberPath="ProfitIfKnown" Width="90">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate x:DataType="core:OrderProfit">
+                    <TextBlock Margin="10,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold"
+                               Text="{Binding ProfitIfKnown, StringFormat=N2}" Foreground="{Binding ProfitIfKnown, Converter={x:Static vm:Converters.NegativeRed}}"/>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTextColumn Header="Price" Binding="{Binding ItemPrice, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Discount" Binding="{Binding Discount, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Shipping discount" Binding="{Binding ShippingDiscount, StringFormat=N2}" CellStyleClasses="num"/>
+              <DataGridTextColumn Header="Coupon" Binding="{Binding Coupon}"/>
+              <DataGridCheckBoxColumn Header="Offsite Ad" Binding="{Binding AdAttributed}"/>
+              <DataGridTextColumn Header="Note" Binding="{Binding Status}" Foreground="{DynamicResource MutedBrush}"/>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</UserControl>

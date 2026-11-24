@@ -1,0 +1,109 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CraftingMargins.App.ViewModels"
+             xmlns:core="using:CraftingMargins.Core"
+             xmlns:local="using:CraftingMargins.App"
+             x:Class="CraftingMargins.App.Views.TaxesView"
+             x:DataType="vm:MainViewModel">
+  <DockPanel Margin="8,16,8,16" DataContext="{Binding Tax}" x:DataType="vm:TaxViewModel">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+      <TextBlock Classes="pageTitle" Text="Taxes"/>
+      <TextBlock Classes="pageSub" TextWrapping="Wrap" Text="Your year by month, for your own records or your tax preparer. Not tax advice: the Schedule C lines are suggestions."/>
+    </StackPanel>
+    <!-- One scrolling page: the table has a set height so it never runs over the note below it. -->
+    <ScrollViewer>
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,0,8,8">
+      <DockPanel Margin="0,0,0,10">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+          <Button Content="Export to Excel…" Command="{Binding ExportExcelCommand}"/>
+          <Button Content="Export CSV…" Command="{Binding ExportCsvCommand}"/>
+        </StackPanel>
+        <WrapPanel Orientation="Horizontal">
+          <ComboBox AutomationProperties.Name="Tax year" ItemsSource="{Binding Years}" SelectedItem="{Binding SelectedYear}" Width="110" Margin="0,0,16,6"/>
+          <CheckBox IsChecked="{Binding ByScheduleC}" Content="Group by Schedule C line" Margin="0,0,16,6"/>
+          <CheckBox IsChecked="{Binding CountAsBought}" Content="Count supplies when bought, not as used" Margin="0,0,16,6"
+                    ToolTip.Tip="Materials, components and packaging: count what you bought (expense log) instead of what each sale used. Never both."/>
+        </WrapPanel>
+      </DockPanel>
+
+      <!-- The year at a glance: one slim row so the table keeps its room -->
+      <Grid Grid.Row="1" ColumnDefinitions="*,10,*,10,*,10,*" Margin="0,0,0,8">
+        <Border Grid.Column="0" Classes="card" Padding="14,8">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Classes="tileLabel" VerticalAlignment="Center" Text="SALES"/>
+            <TextBlock HorizontalAlignment="Right" FontSize="17" FontWeight="SemiBold" Text="{Binding TileSales}"/>
+          </DockPanel>
+        </Border>
+        <Border Grid.Column="2" Classes="card" Padding="14,8">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Classes="tileLabel" VerticalAlignment="Center" Text="ETSY FEES"/>
+            <TextBlock HorizontalAlignment="Right" FontSize="17" FontWeight="SemiBold" Text="{Binding TileFees}"/>
+          </DockPanel>
+        </Border>
+        <Border Grid.Column="4" Classes="card" Padding="14,8">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Classes="tileLabel" VerticalAlignment="Center" Text="SHIPPING AND COSTS"/>
+            <TextBlock HorizontalAlignment="Right" FontSize="17" FontWeight="SemiBold" Text="{Binding TileCosts}"/>
+          </DockPanel>
+        </Border>
+        <Border Grid.Column="6" Classes="card" Padding="14,8">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Left" Classes="tileLabel" VerticalAlignment="Center" Text="NET PROFIT"/>
+            <TextBlock HorizontalAlignment="Right" FontSize="17" FontWeight="SemiBold" Text="{Binding TileProfit}" Foreground="{Binding TileProfitNegative, Converter={x:Static vm:Converters.RedIfTrue}}"/>
+          </DockPanel>
+        </Border>
+      </Grid>
+
+      <StackPanel Grid.Row="2" Spacing="6" Margin="0,0,0,8">
+        <TextBlock FontSize="12" Margin="0" Text="{Binding Notes}" TextWrapping="Wrap" ToolTip.Tip="{Binding Notes}" IsVisible="{Binding Notes, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        <Expander Header="Compare with your 1099-K" HorizontalAlignment="Stretch" Padding="12,8">
+          <Grid ColumnDefinitions="Auto,*">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Top" Margin="0,0,16,0">
+              <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="1099-K gross amount"/>
+              <TextBox Width="120" Text="{Binding Form1099KText}" PlaceholderText="0.00"/>
+              <Button Content="Check" Command="{Binding Save1099KCommand}"/>
+            </StackPanel>
+            <TextBlock Grid.Column="1" Classes="hint" Margin="0" VerticalAlignment="Center" TextWrapping="Wrap" Text="{Binding Check1099KText}"/>
+          </Grid>
+        </Expander>
+      </StackPanel>
+
+      <DataGrid AutomationProperties.Name="Tax summary" Grid.Row="3" ItemsSource="{Binding LinesView}" IsReadOnly="True" CanUserSortColumns="False" FrozenColumnCount="2" Height="480">
+        <DataGrid.Styles>
+          <Style Selector="DataGridRow">
+            <Setter Property="FontWeight" Value="{ReflectionBinding IsTotal, Converter={x:Static vm:Converters.BoldIfTrue}}"/>
+            <Setter Property="Opacity" Value="{ReflectionBinding Dimmed, Converter={x:Static vm:Converters.DimIfTrue}}"/>
+          </Style>
+          <Style Selector="DataGridRowGroupHeader">
+            <Setter Property="IsPropertyNameVisible" Value="False"/>
+            <Setter Property="IsItemCountVisible" Value="False"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource HeaderBrush}"/>
+          </Style>
+        </DataGrid.Styles>
+        <DataGrid.Columns>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Line" Binding="{Binding Name}" Width="250"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Year" Binding="{Binding Total, StringFormat=N2}" CellStyleClasses="num strong" Width="110"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Jan" Binding="{Binding Jan, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Feb" Binding="{Binding Feb, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Mar" Binding="{Binding Mar, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Apr" Binding="{Binding Apr, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="May" Binding="{Binding May, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Jun" Binding="{Binding Jun, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Jul" Binding="{Binding Jul, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Aug" Binding="{Binding Aug, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Sep" Binding="{Binding Sep, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Oct" Binding="{Binding Oct, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Nov" Binding="{Binding Nov, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Dec" Binding="{Binding Dec, Converter={x:Static vm:Converters.MoneyOrBlank}}" CellStyleClasses="num" Width="86"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Schedule C (suggested)" Binding="{Binding ScheduleCLine}" Foreground="{DynamicResource MutedBrush}"/>
+          <DataGridTextColumn x:DataType="vm:TaxRow" Header="Note" Binding="{Binding Note}" Foreground="{DynamicResource MutedBrush}"/>
+        </DataGrid.Columns>
+      </DataGrid>
+      <TextBlock Grid.Row="4" Classes="hint" Margin="0,8,0,0" TextWrapping="Wrap"
+                 Text="Months follow your Etsy statements. Faded lines are shown for reference but left out of the total, so supplies are never counted twice. Many small sellers deduct supplies when they buy them; ask your tax professional which suits you. Not tax advice."/>
+    </Grid>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>
