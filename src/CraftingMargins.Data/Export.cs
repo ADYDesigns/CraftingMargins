@@ -15,9 +15,24 @@ public sealed class Sheet(string name)
     public HashSet<int> BoldRows { get; } = [0];
     public double[] ColumnWidths { get; set; } = [];
 
+    /// <summary>Drop-down lists on whole columns (below the header).</summary>
+    public List<ColumnList> Lists { get; } = [];
+    /// <summary>False for a page of text (no frozen header row).</summary>
+    public bool FreezeHeader { get; set; } = true;
+
     public Sheet Add(params object?[] cells) { Rows.Add(cells); return this; }
     public Sheet AddBold(params object?[] cells) { BoldRows.Add(Rows.Count); Rows.Add(cells); return this; }
 }
+
+/// <summary>
+/// A drop-down on a column.  <paramref name="Source"/> is either a list of values ("g,kg,oz")
+/// or a range on another sheet ("Materials!$A$2:$A$1000").  Strict = only those values may be
+/// typed; otherwise Excel only warns, so a name can be typed before it is added to its list.
+/// </summary>
+public sealed record ColumnList(int Column, string Source, bool IsRange, bool Strict, string Prompt);
+
+/// <summary>A number written as a plain number (an amount or a price per gram), not with the two-decimal money format.</summary>
+public readonly record struct Amount(decimal Value);
 
 /// <summary>
 /// Writes .xlsx and .csv files.  The .xlsx is a minimal Office Open XML package written by
@@ -40,6 +55,7 @@ public static class Export
         {
             null => "",
             decimal d => d.ToString("0.00", CultureInfo.InvariantCulture),
+            Amount a => a.Value.ToString("0.########", CultureInfo.InvariantCulture),
             DateOnly d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             int i => i.ToString(CultureInfo.InvariantCulture),
             _ => Convert.ToString(v, CultureInfo.InvariantCulture) ?? "",
@@ -89,7 +105,9 @@ public static class Export
     {
         var sb = new StringBuilder();
         sb.Append("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">""");
-        sb.Append("""<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>""");
+        sb.Append(s.FreezeHeader
+            ? """<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>"""
+            : """<sheetViews><sheetView workbookViewId="0"/></sheetViews>""");
         var cols = s.Rows.Count == 0 ? 0 : s.Rows.Max(r => r.Length);
         if (cols > 0)
         {
@@ -120,6 +138,9 @@ public static class Export
                     case int n:
                         sb.Append(CultureInfo.InvariantCulture, $"""<c r="{refName}"{(bold ? " s=\"1\"" : "")}><v>{n}</v></c>""");
                         break;
+                    case Amount a:   // a plain number shown as typed (0.015 stays 0.015), not as money
+                        sb.Append(CultureInfo.InvariantCulture, $"""<c r="{refName}"{(bold ? " s=\"1\"" : "")}><v>{a.Value.ToString(CultureInfo.InvariantCulture)}</v></c>""");
+                        break;
                     case DateOnly d:
                         var serial = d.DayNumber - new DateOnly(1899, 12, 30).DayNumber;
                         sb.Append(CultureInfo.InvariantCulture, $"""<c r="{refName}" s="{(bold ? 5 : 4)}"><v>{serial}</v></c>""");
@@ -131,13 +152,29 @@ public static class Export
             }
             sb.Append("</row>");
         }
-        sb.Append("</sheetData></worksheet>");
+        sb.Append("</sheetData>");
+        if (s.Lists.Count > 0)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $"""<dataValidations count="{s.Lists.Count}">""");
+            foreach (var l in s.Lists)
+            {
+                var col = ColumnName(l.Column);
+                var formula = l.IsRange ? l.Source : "\"" + l.Source + "\"";
+                sb.Append(CultureInfo.InvariantCulture,
+                    $"""<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" errorStyle="{(l.Strict ? "stop" : "warning")}" promptTitle="{X(Truncate(s.Rows.Count > 0 && l.Column < s.Rows[0].Length ? Display(s.Rows[0][l.Column]) : "", 32))}" prompt="{X(Truncate(l.Prompt, 255))}" sqref="{col}2:{col}5000"><formula1>{X(formula)}</formula1></dataValidation>""");
+            }
+            sb.Append("</dataValidations>");
+        }
+        sb.Append("</worksheet>");
         return sb.ToString();
     }
+
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
 
     private static string Display(object? v) => v switch
     {
         null => "",
+        Amount a => a.Value.ToString("0.########", CultureInfo.InvariantCulture),
         decimal d => d.ToString("#,0.00", CultureInfo.InvariantCulture),
         DateOnly d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
         _ => Convert.ToString(v, CultureInfo.InvariantCulture) ?? "",

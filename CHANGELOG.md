@@ -2,6 +2,28 @@
 
 What changed in each version, newest first. Versions before the first public release were early test builds.
 
+## 0.9.4 (November 27, 2026)
+
+### Fill in your costs with Excel
+- **Cost workbook** on Products & Costs saves one Excel file to fill in: a page of instructions, then Materials, Parts and Cost rules sheets with drop-down lists for units, materials and parts.
+- The Cost rules sheet already lists every listing, with its options spelled exactly as Etsy names them, and the option values that only past orders used. Buyers' personalization is never included.
+- Drop the saved workbook on Home to bring it in. It goes through the same checks as the cost CSV files, and a mistake is reported with its sheet and row. Starter rows left empty are skipped.
+
+### Easier to read tables
+- **Pricing shows each result once.** Combinations of a listing that earn exactly the same, such as three colors at one price and cost, are one row: "Number Of Tools: 2 Tools; Primary color: White, Silver or Black". Anything priced or costed differently keeps its own row, and every combination is still checked. The planned sale and the Excel export are grouped the same way.
+- **Columns can be resized.** Drag the edge of a column heading in any table to widen it.
+- **Parts needing attention.** A checkbox on the Parts tab shows only the parts that are missing something: nothing in them yet, a material with no price, or no machine time when you track it. The dot beside each part turns red for any of these, and hovering over it says what's missing.
+- **Make a part from the pricing check.** Right-click an option that has no cost rule and choose **Create a part for this option**. It makes an empty part named after the listing and option, plus the cost rule linking that option to it (options a row combines, like colors, are left out of the rule), then opens the part on the Parts tab to fill in. Options that already have a cost show the menu item greyed out. **Open this listing's cost rules** is on the same menu.
+- A part picked from elsewhere, like one just made from the pricing check, is scrolled into view on the Parts tab.
+- **The window opens the way you left it:** maximized, or at its last size and place. A place that's no longer on any screen (a monitor unplugged) is ignored and the window is centred.
+- An option whose parts add up to $0 (a part not filled in yet) shows on Pricing as having no cost yet, instead of a green dot with too high a profit.
+- **Sort by the dot.** Click the empty heading above the green and red dots (Parts, Pricing, a listing's costs) to bring the red ones to the top.
+
+### Fixes
+- **Export costs no longer rounds.** Prices and amounts were written with two decimals, so a price of 0.015 per gram came back as 0.02 when the files were imported again. They are now written in full.
+- **Shipping insurance** (Etsy's "Shipsurance Package Insurance" line) counts as shipping, on the same order as its label. Before, it was an unknown line and the month failed its self-test.
+- **Card fees for orders that haven't shipped:** the Etsy sync now asks for every order's card fee, since Etsy charges it at the sale. Until Etsy has one, an unshipped order is no longer flagged for a missing processing fee; profit always uses the fee on the statement.
+
 ## 0.9.1 (November 27, 2026)
 
 Fixes for connecting to Etsy. If you use the Etsy API, please update.

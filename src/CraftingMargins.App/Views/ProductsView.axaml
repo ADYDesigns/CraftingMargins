@@ -7,8 +7,12 @@
              x:DataType="vm:MainViewModel">
   <DockPanel Margin="8,16,8,16" DataContext="{Binding Products}" x:DataType="vm:ProductsViewModel">
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
-      <Button DockPanel.Dock="Right" VerticalAlignment="Top" Content="Export costs…" Command="{Binding ExportCostsCommand}"
-              ToolTip.Tip="Saves your materials, parts and cost rules as three CSV files you can keep or edit in a spreadsheet. To bring them back, drop the files on the Home tab."/>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+        <Button Content="Cost workbook…" Command="{Binding SaveCostWorkbookCommand}"
+                ToolTip.Tip="Saves one Excel workbook to fill in your costs: instructions, drop-downs, and every listing already listed with its options. Drop it on the Home tab to bring it in."/>
+        <Button Content="Export costs…" Command="{Binding ExportCostsCommand}"
+                ToolTip.Tip="Saves your materials, parts and cost rules as three CSV files you can keep or edit in a spreadsheet. To bring them back, drop the files on the Home tab."/>
+      </StackPanel>
       <StackPanel>
         <TextBlock Classes="pageTitle" Text="Products and costs"/>
         <TextBlock Classes="pageSub" Text="What each sale costs you to make: your materials, the parts you make from them, and the rules that link your listings' options to those parts."/>
@@ -128,7 +132,7 @@
                   <TextBlock Classes="hint" Margin="0" Text="Press Check after changing a rule. Options with a red dot have no cost yet. Options the listing offers but that have not sold are listed too."/>
                   <DataGrid AutomationProperties.Name="Cost of each option" ItemsSource="{Binding Preview}" IsReadOnly="True" MaxHeight="320">
                     <DataGrid.Columns>
-                      <DataGridTemplateColumn Header="" Width="34">
+                      <DataGridTemplateColumn Header="" Width="34" SortMemberPath="Ok">
                         <DataGridTemplateColumn.CellTemplate>
                           <DataTemplate x:DataType="vm:PreviewRow">
                             <Ellipse Classes="dot" HorizontalAlignment="Center" Fill="{Binding Ok, Converter={x:Static vm:Converters.GoodBad}}"/>
@@ -157,24 +161,26 @@
             <Button Classes="danger" Content="Delete part" Command="{Binding DeletePartCommand}"/>
             <Button Classes="primary" Content="Save parts" Command="{Binding SavePartsCommand}"/>
             <TextBlock Classes="unsaved" IsVisible="{Binding PartsEdit.IsDirty}"/>
+            <CheckBox Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding OnlyPartsNeedingAttention}" Content="{Binding PartsAttentionText}"
+                      ToolTip.Tip="Parts with nothing in them yet, a material with no price, or no machine time (when you track it). Hover over a red dot to see what's missing."/>
           </StackPanel>
-          <DataGrid Grid.Row="2" Name="PartsGrid" AutomationProperties.Name="Parts" ItemsSource="{Binding Parts}" SelectedItem="{Binding SelectedPart}" CanUserSortColumns="True" RowHeight="40" MinHeight="160">
+          <DataGrid Grid.Row="2" Name="PartsGrid" AutomationProperties.Name="Parts" ItemsSource="{Binding PartsView}" SelectedItem="{Binding SelectedPart}" CanUserSortColumns="True" RowHeight="40" MinHeight="160">
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="" Width="34">
+              <DataGridTemplateColumn Header="" Width="34" SortMemberPath="Ok">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="vm:PartRow">
-                    <Ellipse Classes="dot" HorizontalAlignment="Center" Fill="{Binding TimeOk, Converter={x:Static vm:Converters.GoodBad}}"
-                             ToolTip.Tip="{Binding NeedsMachineTime, Converter={x:Static vm:Converters.MachineTimeTip}}"/>
+                    <Ellipse Classes="dot" HorizontalAlignment="Center" Fill="{Binding Ok, Converter={x:Static vm:Converters.GoodBad}}"
+                             ToolTip.Tip="{Binding DotTip}"/>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="260"/>
-              <DataGridTextColumn Header="What goes into it" Binding="{Binding Recipe}" IsReadOnly="True" Width="320" Foreground="{DynamicResource MutedBrush}"/>
-              <DataGridTextColumn Header="Machine minutes" Binding="{Binding MachineMinutes}" CellStyleClasses="num"/>
-              <DataGridTextColumn Header="Your minutes" Binding="{Binding OwnMinutes}" CellStyleClasses="num"/>
+              <DataGridTextColumn x:DataType="vm:PartRow" Header="Name" Binding="{Binding Name}" Width="260"/>
+              <DataGridTextColumn x:DataType="vm:PartRow" Header="What goes into it" Binding="{Binding Recipe}" IsReadOnly="True" Width="320" Foreground="{DynamicResource MutedBrush}"/>
+              <DataGridTextColumn x:DataType="vm:PartRow" Header="Machine minutes" Binding="{Binding MachineMinutes}" CellStyleClasses="num"/>
+              <DataGridTextColumn x:DataType="vm:PartRow" Header="Your minutes" Binding="{Binding OwnMinutes}" CellStyleClasses="num"/>
               <DataGridTemplateColumn Header="Amounts from" Width="160" SortMemberPath="EffectiveFrom"><DataGridTemplateColumn.CellTemplate><DataTemplate x:DataType="vm:PartRow"><CalendarDatePicker Classes="cell" SelectedDate="{Binding EffectiveFrom, Converter={x:Static vm:Converters.DateText}}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-              <DataGridTextColumn Header="Versions" Binding="{Binding WeightVersions}" IsReadOnly="True" CellStyleClasses="num"/>
-              <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="SizeToCells" MinWidth="220" Foreground="{DynamicResource MutedBrush}"/>
+              <DataGridTextColumn x:DataType="vm:PartRow" Header="Versions" Binding="{Binding WeightVersions}" IsReadOnly="True" CellStyleClasses="num"/>
+              <DataGridTextColumn x:DataType="vm:PartRow" Header="Notes" Binding="{Binding Notes}" Width="SizeToCells" MinWidth="220" Foreground="{DynamicResource MutedBrush}"/>
             </DataGrid.Columns>
           </DataGrid>
           <!-- The recipe of the part picked above: one row per material. -->
@@ -224,7 +230,7 @@
           </StackPanel>
           <DataGrid AutomationProperties.Name="Materials" ItemsSource="{Binding Materials}" SelectedItem="{Binding SelectedMaterial}" HorizontalAlignment="Left" VerticalAlignment="Top" RowHeight="40">
             <DataGrid.Columns>
-              <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="260"/>
+              <DataGridTextColumn x:DataType="vm:PartRow" Header="Name" Binding="{Binding Name}" Width="260"/>
               <DataGridTemplateColumn Header="Unit" Width="110" SortMemberPath="Unit">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="vm:MaterialRow">

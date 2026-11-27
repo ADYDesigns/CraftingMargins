@@ -226,14 +226,14 @@ public sealed class ListingFixTests : IDisposable
         var id = listing.Key;
         var data = new ShopData { Costs = new CostModel { Rules = [new MappingRule { ListingId = id, FixedCost = 4m }] } };
         var rows = PricingCheck.Build(data, [listing], [], new PricingOptions { Floor = 5m, Today = new DateOnly(2026, 11, 24) });
-        Assert.Equal(4, rows.Count);                                    // every combination
-        Assert.All(rows, r => Assert.Equal(id, r.ListingId));
-        Assert.All(rows, r => Assert.Equal(4m, r.Cost));
-        Assert.Contains(rows, r => r.Options == "Size:Small,Color:Walnut");
+        Assert.Equal(4, rows.Sum(r => r.Combinations));                 // every combination...
+        var row = Assert.Single(rows);                                  // ...shown once, since they all earn the same
+        Assert.Equal((id, 4m), (row.ListingId, row.Cost));
+        Assert.Equal("Size: Small or Large; Color: Oak or Walnut", row.OptionsText);
 
         // Without a rule it shows as needing one, instead of not showing at all.
         var bare = PricingCheck.Build(new ShopData(), [listing], [], new PricingOptions());
-        Assert.Equal(4, bare.Count);
+        Assert.Equal(4, bare.Sum(r => r.Combinations));
         Assert.All(bare, r => Assert.Equal("No rules for this listing", r.Problem));
     }
 

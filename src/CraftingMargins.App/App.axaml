@@ -167,6 +167,8 @@
 
     <!-- ===== Tables ===== -->
     <Style Selector="DataGrid">
+      <!-- Drag the edge of a column header to widen it (off by default in Avalonia). -->
+      <Setter Property="CanUserResizeColumns" Value="True"/>
       <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
       <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
       <Setter Property="BorderThickness" Value="1"/>

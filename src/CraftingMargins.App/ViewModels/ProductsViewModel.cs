@@ -43,7 +43,7 @@ public sealed partial class PartRow : ObservableObject
     /// <summary>What goes into one of this part.</summary>
     public ObservableCollection<PartLineRow> Lines { get; } = [];
     [ObservableProperty] private PartLineRow? _selectedLine;
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(NeedsMachineTime), nameof(TimeOk))] private decimal _machineMinutes;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(NeedsMachineTime), nameof(TimeOk), nameof(Problem), nameof(Ok), nameof(DotTip))] private decimal _machineMinutes;
     /// <summary>The maker's own hands-on minutes.</summary>
     [ObservableProperty] private decimal _ownMinutes;
     [ObservableProperty] private string _effectiveFrom = "";
@@ -56,11 +56,33 @@ public sealed partial class PartRow : ObservableObject
     /// <summary>Machine time is tracked, this part has materials, and no machine time was entered: shown with a red dot.</summary>
     public bool NeedsMachineTime => MachineTimeExpected && MachineMinutes == 0 && Lines.Any(l => l.Amount > 0 && l.Unit != Units.Each && l.Unit.Length > 0);
     public bool TimeOk => !NeedsMachineTime;
+
+    /// <summary>Set by the Products view model: a material's current price by name (null = no such material).</summary>
+    public Func<string?, decimal?> PriceOf { get; init; } = _ => null;
+
+    /// <summary>What's missing, for the dot's tooltip and the "needs attention" filter.  Empty = complete.</summary>
+    public string Problem
+    {
+        get
+        {
+            var problems = new List<string>();
+            var used = Lines.Where(l => !string.IsNullOrEmpty(l.Material)).ToList();
+            if (used.Count == 0 || used.All(l => l.Amount == 0)) problems.Add("Nothing goes into it yet: add its materials below");
+            foreach (var l in used.Where(l => l.Amount == 0 && used.Any(x => x.Amount > 0))) problems.Add($"The amount of {l.Material} is 0");
+            foreach (var l in used.Where(l => l.Amount > 0))
+                if (PriceOf(l.Material) is not { } price) problems.Add($"{l.Material} isn't on the Materials tab");
+                else if (price == 0) problems.Add($"{l.Material} has no price (Materials tab)");
+            if (NeedsMachineTime) problems.Add("No machine time entered");
+            return string.Join(".  ", problems.Distinct()) + (problems.Count > 0 ? "." : "");
+        }
+    }
+    public bool Ok => Problem.Length == 0;
+    public string DotTip => Ok ? "Complete." : Problem;
+
     public void RefreshRecipe()
     {
         Recipe = string.Join(", ", Lines.Where(l => !string.IsNullOrEmpty(l.Material)).Select(l => $"{l.Amount:0.###} {l.Unit} {l.Material}"));
-        OnPropertyChanged(nameof(NeedsMachineTime));
-        OnPropertyChanged(nameof(TimeOk));
+        foreach (var name in new[] { nameof(NeedsMachineTime), nameof(TimeOk), nameof(Problem), nameof(Ok), nameof(DotTip) }) OnPropertyChanged(name);
     }
 }
 
@@ -143,6 +165,20 @@ public sealed partial class ProductsViewModel : ObservableObject
     public ObservableCollection<PreviewRow> Preview { get; } = [];
     public ObservableCollection<MaterialRow> Materials { get; } = [];
     public ObservableCollection<PartRow> Parts { get; } = [];
+    /// <summary>The Parts grid: every part, or only those missing something (<see cref="OnlyPartsNeedingAttention"/>).</summary>
+    public Avalonia.Collections.DataGridCollectionView PartsView { get; }
+    /// <summary>Only parts with nothing in them, a material without a price, or (when tracked) no machine time.</summary>
+    [ObservableProperty] private bool _onlyPartsNeedingAttention;
+    [ObservableProperty] private string _partsAttentionText = "Only parts needing attention";
+    partial void OnOnlyPartsNeedingAttentionChanged(bool value) => RefreshPartsView();
+
+    /// <summary>Re-applies the filter and the count.  A part being edited stays in view until then, even once it's complete.</summary>
+    private void RefreshPartsView()
+    {
+        PartsView.Refresh();
+        var n = Parts.Count(p => !p.Ok);
+        PartsAttentionText = n == 0 ? "Only parts needing attention (none)" : $"Only parts needing attention ({n})";
+    }
     public ObservableCollection<AliasRow> Aliases { get; } = [];
     private readonly ObservableCollection<string> _materialNames = [];
     private readonly ObservableCollection<string> _partNames = [];
@@ -166,7 +202,8 @@ public sealed partial class ProductsViewModel : ObservableObject
     public ProductsViewModel(MainViewModel main)
     {
         this.main = main;
-        MaterialsEdit = new("materials", () => EditState.Lines(Materials.Select(m => EditState.Line(m.Model.Id, m.Name, m.Unit, m.CostPerUnit, m.EffectiveFrom))));
+        PartsView = new Avalonia.Collections.DataGridCollectionView(Parts) { Filter = o => !OnlyPartsNeedingAttention || o is PartRow { Ok: false } };
+        MaterialsEdit =new("materials", () => EditState.Lines(Materials.Select(m => EditState.Line(m.Model.Id, m.Name, m.Unit, m.CostPerUnit, m.EffectiveFrom))));
         PartsEdit = new("parts", () => EditState.Lines(Parts.Select(p => EditState.Line(p.Model.Id, p.Name, p.MachineMinutes, p.OwnMinutes, p.EffectiveFrom, p.Notes,
             string.Join(";", p.Lines.Select(l => EditState.Line(l.Material, l.Amount)))))));
         AliasesEdit = new("retired options", () => EditState.Lines(Aliases.Select(a => EditState.Line(a.ListingId, a.VariationName, a.OldValue, a.NewValue))));
@@ -221,6 +258,7 @@ public sealed partial class ProductsViewModel : ObservableObject
                     foreach (var p in data.Costs.Parts) Parts.Add(ToRow(p));
                 }
             RebuildPartNames();
+            RefreshPartsView();
 
             if (!AliasesEdit.IsDirty)
                 using (AliasesEdit.Loading())
@@ -259,7 +297,7 @@ public sealed partial class ProductsViewModel : ObservableObject
         {
             Model = p, Name = p.Name, MachineMinutes = v?.MachineMinutes ?? 0, OwnMinutes = v?.OwnMinutes ?? 0,
             EffectiveFrom = v?.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? Today, Notes = p.Notes,
-            MachineTimeExpected = main.Services.Settings.TrackMachineTime,
+            MachineTimeExpected = main.Services.Settings.TrackMachineTime, PriceOf = PriceOf,
         };
         Watch(row);
         foreach (var line in v?.Lines ?? [])
@@ -267,6 +305,9 @@ public sealed partial class ProductsViewModel : ObservableObject
         row.RefreshRecipe();
         return row;
     }
+
+    /// <summary>A material's price by name, from the Materials grid as it stands (null = no such material).</summary>
+    private decimal? PriceOf(string? material) => Materials.FirstOrDefault(m => m.Name == material)?.CostPerUnit;
 
     /// <summary>The unit of a material by name, from the Materials grid as it stands (saved or not).</summary>
     private string UnitOf(string? material) => Materials.FirstOrDefault(m => m.Name == material)?.Unit ?? "";
@@ -658,7 +699,7 @@ public sealed partial class ProductsViewModel : ObservableObject
     [RelayCommand]
     private void AddPart()
     {
-        var row = new PartRow { Name = "New part", EffectiveFrom = "2000-01-01", MachineTimeExpected = main.Services.Settings.TrackMachineTime };
+        var row = new PartRow { Name = "New part", EffectiveFrom = "2000-01-01", MachineTimeExpected = main.Services.Settings.TrackMachineTime, PriceOf = PriceOf };
         Watch(row);
         if (_materialNames.Count > 0) row.Lines.Add(NewLine(_materialNames[0], 0));
         Parts.Add(row);
@@ -782,6 +823,61 @@ public sealed partial class ProductsViewModel : ObservableObject
         {
             main.Status = "Couldn't save the files (is one open in Excel, or the folder read-only?): " + ex.Message;
         }
+    }
+
+    /// <summary>
+    /// Saves the costs as one Excel workbook that's easy to fill in: instructions, drop-downs,
+    /// and every listing already on the Cost rules sheet with its options.  Dropped on Home, it comes back in.
+    /// </summary>
+    [RelayCommand]
+    private async Task SaveCostWorkbook()
+    {
+        if (UnsavedCosts() is { Length: > 0 } unsaved &&
+            !await Dialogs.Confirm("Cost workbook", $"The workbook holds what is saved. Your unsaved changes ({unsaved}) won't be in it.\n\nSave anyway?", "Save", "Go back")) return;
+        var path = await Dialogs.SaveFile("Save the cost workbook", CraftingMargins.Data.CostsWorkbook.FileName, "Excel workbook", "xlsx", main.Services.Settings.LastExportFolder);
+        if (path is null) return;
+        try
+        {
+            CraftingMargins.Data.CostsWorkbook.Write(main.Services.Db, path);
+            main.Services.Settings.LastExportFolder = Path.GetDirectoryName(path);
+            main.Services.SaveSettings();
+            main.Status = $"Saved {Path.GetFileName(path)}. Fill it in with Excel (the first sheet says how), save it, then drop it on the Home tab.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            main.Status = "Couldn't save the workbook (is it open in Excel, or the folder read-only?): " + ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// From the pricing check: an option with no cost rule gets an empty part and the rule that
+    /// links the option to it, both saved, and the Parts tab opens on the new part to fill in.
+    /// </summary>
+    public async Task CreatePartForOption(PriceRow row)
+    {
+        var edits = new[] { RulesEdit, PartsEdit };
+        foreach (var e in edits) e.Check();
+        if (edits.Where(e => e.IsDirty).Select(e => e.Name).ToList() is { Count: > 0 } unsaved)
+        {
+            main.Status = $"Save or undo your unsaved {string.Join(" and ", unsaved)} on Products & Costs first, then try again.";
+            return;
+        }
+        var db = main.Services.Db;
+        var parts = db.LoadParts();
+        var rules = db.LoadRules();
+        var order = rules.Where(r => r.ListingId == row.ListingId).Select(r => r.SortOrder + 1).DefaultIfEmpty(0).Max();
+        var (part, rule) = PricingCheck.NewPartForOption(row, parts.Select(p => p.Name), order);
+        parts.Add(part);
+        db.SaveParts(parts);                                    // gives the part its number
+        rule.Parts.Add(new RulePart(part.Id, 1));
+        rules.Add(rule);
+        db.SaveRules(rules);
+
+        var when = rule.Conditions.Count == 0 ? "every sale" : "when " + string.Join(" and ", rule.Conditions.Select(c => $"{c.Key} is {c.Value}"));
+        await main.RefreshAsync($"Made the part \"{part.Name}\", used by {Suggestions.Short(row.Title)} {when}. Add what goes into it below, then Save parts.");
+        SelectedSubTab = 1;
+        main.SelectedTab = MainViewModel.TabProducts;
+        SelectedPart = Parts.FirstOrDefault(p => p.Model.Id == part.Id);
     }
 
     private string UnsavedCosts()

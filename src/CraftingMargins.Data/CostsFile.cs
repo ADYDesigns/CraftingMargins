@@ -35,6 +35,24 @@ public static class CostsFile
     public static List<string> Export(Database db, string folder)
     {
         Directory.CreateDirectory(folder);
+        var (m, ps, rs) = BuildSheets(db);
+        var files = new List<string>();
+        foreach (var (sheet, name) in new[] { (m, MaterialsName), (ps, PartsName), (rs, RulesName) })
+        {
+            var path = Path.Combine(folder, name);
+            Data.Export.WriteCsv(path, sheet);
+            files.Add(path);
+        }
+        Log.Write($"Costs exported to {folder}: {m.Rows.Count - 1} material price(s), {ps.Rows.Count - 1} part row(s), {rs.Rows.Count - 1} rule row(s).");
+        return files;
+    }
+
+    /// <summary>
+    /// The saved materials, parts and rules as three tables with the file headers.  Amounts,
+    /// prices per unit, minutes and quantities are written in full (0.015, not 0.02).
+    /// </summary>
+    internal static (Sheet Materials, Sheet Parts, Sheet Rules) BuildSheets(Database db)
+    {
         var materials = db.LoadMaterials();
         var parts = db.LoadParts();
         var rules = db.LoadRules();
@@ -48,7 +66,7 @@ public static class CostsFile
         m.Add([.. MaterialsHeader]);
         foreach (var mat in materials.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase))
             foreach (var p in mat.Prices.OrderBy(p => p.EffectiveFrom))
-                m.Add(mat.Name, mat.Unit, p.CostPerUnit, p.EffectiveFrom);
+                m.Add(mat.Name, mat.Unit, new Amount(p.CostPerUnit), p.EffectiveFrom);
 
         var ps = new Sheet("Parts");
         ps.Add([.. PartsHeader]);
@@ -56,8 +74,8 @@ public static class CostsFile
             foreach (var v in part.Versions.OrderBy(v => v.EffectiveFrom))
             {
                 var lines = v.Lines.Where(l => matName.ContainsKey(l.MaterialId)).ToList();
-                if (lines.Count == 0) ps.Add(part.Name, v.EffectiveFrom, v.MachineMinutes, v.OwnMinutes, "", 0m, part.Notes);
-                foreach (var l in lines) ps.Add(part.Name, v.EffectiveFrom, v.MachineMinutes, v.OwnMinutes, matName[l.MaterialId], l.Amount, part.Notes);
+                if (lines.Count == 0) ps.Add(part.Name, v.EffectiveFrom, new Amount(v.MachineMinutes), new Amount(v.OwnMinutes), "", new Amount(0), part.Notes);
+                foreach (var l in lines) ps.Add(part.Name, v.EffectiveFrom, new Amount(v.MachineMinutes), new Amount(v.OwnMinutes), matName[l.MaterialId], new Amount(l.Amount), part.Notes);
             }
 
         var rs = new Sheet("Cost rules");
@@ -67,19 +85,10 @@ public static class CostsFile
             var conditions = Variations.Format(r.Conditions.Select(c => new KeyValuePair<string, string>(c.Key, c.Value)));
             var title = titles.GetValueOrDefault(r.ListingId, "");
             var used = r.Parts.Where(p => partName.ContainsKey(p.PartId)).ToList();
-            if (used.Count == 0) rs.Add(r.ListingId, title, r.Name, conditions, r.FixedCost, "", 0m, "");
-            foreach (var p in used) rs.Add(r.ListingId, title, r.Name, conditions, r.FixedCost, partName[p.PartId], p.Quantity, p.MultiplyByVariation ?? "");
+            if (used.Count == 0) rs.Add(r.ListingId, title, r.Name, conditions, new Amount(r.FixedCost), "", new Amount(0), "");
+            foreach (var p in used) rs.Add(r.ListingId, title, r.Name, conditions, new Amount(r.FixedCost), partName[p.PartId], new Amount(p.Quantity), p.MultiplyByVariation ?? "");
         }
-
-        var files = new List<string>();
-        foreach (var (sheet, name) in new[] { (m, MaterialsName), (ps, PartsName), (rs, RulesName) })
-        {
-            var path = Path.Combine(folder, name);
-            Data.Export.WriteCsv(path, sheet);
-            files.Add(path);
-        }
-        Log.Write($"Costs exported to {folder}: {materials.Count} materials, {parts.Count} parts, {rules.Count} rules.");
-        return files;
+        return (m, ps, rs);
     }
 
     // ---------------------------------------------------------------- import

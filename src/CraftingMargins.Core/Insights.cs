@@ -327,7 +327,26 @@ public sealed class PriceRow
     public string Title { get; init; } = "";
     /// <summary>"Name:Value,Name:Value" (empty for a listing without options).</summary>
     public string Options { get; init; } = "";
-    public string OptionsText => Options.Length == 0 ? "(no options)" : Variations.Readable(Options);
+    public string OptionsText => Grouped ?? (Options.Length == 0 ? "(no options)" : Variations.Readable(Options));
+    /// <summary>
+    /// Set when this row stands for several combinations that earn exactly the same (colors at one
+    /// price, say): "Size: Large; Color: White, Silver or Black".  <see cref="Options"/> is then the first of them.
+    /// </summary>
+    public string? Grouped { get; set; }
+    /// <summary>How many buyable combinations this row stands for.</summary>
+    public int Combinations { get; set; } = 1;
+    /// <summary>
+    /// The options every combination in this row has (in a grouped row, the ones not merged:
+    /// "Size: Large" but not the colors).  A cost rule with these as its conditions covers the whole row.
+    /// </summary>
+    public List<KeyValuePair<string, string>> SharedOptions
+    {
+        get => _shared ?? Variations.Parse(Options);
+        set => _shared = value;
+    }
+    private List<KeyValuePair<string, string>>? _shared;
+    /// <summary>No cost rule covers this option at all (rather than a rule with a problem, or a cost that's below the goal).</summary>
+    public bool HasNoRule => Cost is null && Problem.StartsWith("No rule", StringComparison.Ordinal);
     /// <summary>Price on Etsy, before any planned sale.</summary>
     public decimal ListPrice { get; init; }
     /// <summary>Price used for the profit columns (list price, or the planned sale price).</summary>
@@ -415,7 +434,7 @@ public static class PricingCheck
             rows.Add(Row(g.Key.ListingId, newestName[g.Key.ListingId], g.Key.Vars, last.Price, $"Last sold {last.SaleDate:MMM d, yyyy}"));
         }
 
-        return [.. rows.Where(r => !Variations.Parse(r.Options).Any(v => data.Costs.IsRetired(r.ListingId, v.Key, v.Value)))
+        return [.. Combine(rows.Where(r => !Variations.Parse(r.Options).Any(v => data.Costs.IsRetired(r.ListingId, v.Key, v.Value))))
                        .OrderBy(r => r.Title, StringComparer.OrdinalIgnoreCase).ThenBy(r => r.Options)];
 
         PriceRow Row(string id, string title, string vars, decimal listPrice, string source)
@@ -424,6 +443,8 @@ public static class PricingCheck
             var price = discounted ? Money.RoundFee(listPrice * (1 - opt.DiscountPercent)) : listPrice;
             var (ship, label, labelSource) = shipping.TryGetValue(id, out var s) ? s : (0m, (decimal?)null, "No single-item orders yet; assumed free shipping");
             var c = data.Costs.CostOf(id, vars, 1, opt.Today);
+            // A rule whose parts add up to $0 (a part not filled in yet) isn't a real cost: no profit figures, never a green dot.
+            if (c.Mapped && data.Costs.NeedsCost(id, c)) c = LineCost.Unmapped("Its parts add up to $0 so far: fill in what goes into them");
             if (!c.Mapped)
                 return new PriceRow
                 {
@@ -442,6 +463,78 @@ public static class PricingCheck
                 Organic = organic, WorstCase = worst, MinPrice = min, BelowFloor = worst < opt.Floor, PriceSource = source,
             };
         }
+    }
+
+    /// <summary>
+    /// One row for combinations of a listing that earn exactly the same: same price, shipping,
+    /// label, cost, making time and result.  Typically a color that doesn't change the price or
+    /// the cost.  Merged one option at a time, so a row always stands for every combination of the
+    /// values it shows (never "White or Black" when only White comes in Large).  A combination
+    /// that differs in anything keeps its own row.
+    /// </summary>
+    public static List<PriceRow> Combine(IEnumerable<PriceRow> rows)
+    {
+        var groups = new List<(PriceRow First, List<(string Name, List<string> Values)> Options, int Count)>();
+        foreach (var r in rows)
+            groups.Add((r, Variations.Parse(r.Options).Select(p => (p.Key, new List<string> { p.Value })).ToList(), 1));
+
+        var names = groups.SelectMany(g => g.Options.Select(o => o.Name)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        foreach (var name in names)
+        {
+            var merged = new List<(PriceRow First, List<(string Name, List<string> Values)> Options, int Count)>();
+            foreach (var g in groups.GroupBy(g => (Same(g.First), Others(g.Options, name))))
+            {
+                var list = g.ToList();
+                if (list.Count == 1 || list.Any(x => !x.Options.Any(o => o.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))) { merged.AddRange(list); continue; }
+                var options = list[0].Options.Select(o => o.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+                    ? (o.Name, list.SelectMany(x => x.Options.First(y => y.Name.Equals(name, StringComparison.OrdinalIgnoreCase)).Values).Distinct().ToList())
+                    : o).ToList();
+                merged.Add((list[0].First, options, list.Sum(x => x.Count)));
+            }
+            groups = merged;
+        }
+
+        foreach (var g in groups.Where(g => g.Count > 1))
+        {
+            g.First.Combinations = g.Count;
+            g.First.Grouped = string.Join("; ", g.Options.Select(o => $"{o.Name}: {Or(o.Values)}"));
+            g.First.SharedOptions = [.. g.Options.Where(o => o.Values.Count == 1).Select(o => new KeyValuePair<string, string>(o.Name, o.Values[0]))];
+        }
+        return [.. groups.Select(g => g.First)];
+
+        static string Or(List<string> v) => v.Count == 1 ? v[0] : string.Join(", ", v.Take(v.Count - 1)) + " or " + v[^1];
+        static string Others(List<(string Name, List<string> Values)> opts, string except) =>
+            string.Join("\u001f", opts.Where(o => !o.Name.Equals(except, StringComparison.OrdinalIgnoreCase))
+                                      .Select(o => o.Name.ToLowerInvariant() + "=" + string.Join("\u001e", o.Values.Order(StringComparer.Ordinal))));
+        static string Same(PriceRow r) => FormattableString.Invariant(
+            $"{r.ListingId}|{r.Title}|{r.ListPrice}|{r.Price}|{r.Shipping}|{r.Label}|{r.Cost}|{r.MakingHours}|{r.Organic}|{r.WorstCase}|{r.MinPrice}|{r.BelowFloor}|{r.PriceSource}|{r.Problem}|{r.LabelSource}");
+    }
+
+    /// <summary>
+    /// An empty part for an option that has no cost rule, and the rule linking that option to it:
+    /// "Vinyl Roll Holder – 4 x 6 (24 rolls)", used when Size is 4 x 6 (24 rolls).  Options a grouped
+    /// row merged (colors, say) are left out of the rule, so it covers the whole row.  The part
+    /// starts in 2000 so every past sale of the option is costed once its materials are filled in.
+    /// </summary>
+    public static (Part Part, MappingRule Rule) NewPartForOption(PriceRow row, IEnumerable<string> existingPartNames, int sortOrder)
+    {
+        var shared = row.SharedOptions;
+        var values = string.Join(", ", shared.Select(o => o.Value));
+        var baseName = values.Length > 0 ? $"{Suggestions.Short(row.Title)} – {values}" : Suggestions.Short(row.Title);
+        var taken = existingPartNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var name = baseName;
+        for (int n = 2; taken.Contains(name); n++) name = $"{baseName} ({n})";
+        var part = new Part
+        {
+            Name = name, Versions = [new PartVersion(new DateOnly(2000, 1, 1), [])],
+            Notes = "Made from the pricing check" + (shared.Count > 0 ? $" for {string.Join(", ", shared.Select(o => $"{o.Key}: {o.Value}"))}" : ""),
+        };
+        var rule = new MappingRule
+        {
+            ListingId = row.ListingId, Name = values.Length > 0 ? values : "Every sale", SortOrder = sortOrder,
+            Conditions = new(shared.ToDictionary(o => o.Key, o => o.Value, StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase),
+        };
+        return (part, rule);
     }
 
     /// <summary>For sale now: the API says "active", or it came from the "currently for sale" listings file (which has no state).</summary>

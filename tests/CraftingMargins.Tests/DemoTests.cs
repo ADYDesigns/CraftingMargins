@@ -90,7 +90,8 @@ public sealed class DemoTests : IDisposable
     {
         var (db, data, _) = Build();
         var rows = PricingCheck.Build(data, db.LoadListings(), OrderReport.Build(data), new PricingOptions { Today = Today });
-        Assert.Equal(21, rows.Count);                                   // 15 listings, 21 options
+        Assert.Equal(21, rows.Sum(r => r.Combinations));                // 15 listings, 21 options...
+        Assert.Equal(18, rows.Count);                                   // ...options that earn the same are one row
         Assert.All(rows, r => Assert.Equal("Etsy", r.PriceSource));
     }
 }

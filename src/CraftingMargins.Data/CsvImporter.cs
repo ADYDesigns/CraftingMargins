@@ -47,7 +47,12 @@ public sealed partial class CsvImporter(Database db, AppSettings settings, Categ
         CsvKind[] order = [CsvKind.Materials, CsvKind.Parts, CsvKind.Rules, CsvKind.Listings, CsvKind.Orders, CsvKind.OrderItems, CsvKind.Statement, CsvKind.Unknown];
         foreach (var p in paths.Select(p => (Path: p, Kind: PeekKind(p))).OrderBy(x => Array.IndexOf(order, x.Kind)).Select(x => x.Path).ToList())
         {
-            try { results.Add(ImportFile(p)); }
+            try
+            {
+                // The cost workbook holds all three cost files (materials, parts, rules) in one .xlsx.
+                if (CostsWorkbook.IsWorkbook(p)) results.AddRange(CostsWorkbook.Import(db, p));
+                else results.Add(ImportFile(p));
+            }
             catch (Exception ex)
             {
                 // The message can quote a cell from the file (an amount), and the log never holds money values: log the kind of error only.
@@ -61,6 +66,7 @@ public sealed partial class CsvImporter(Database db, AppSettings settings, Categ
     /// <summary>What kind of file this is, from its header row only.  Unknown if it can't be read (the import itself then says why).</summary>
     public static CsvKind PeekKind(string path)
     {
+        if (CostsWorkbook.IsWorkbook(path)) return CsvKind.Materials;     // read with the cost files, first
         try
         {
             using var reader = new StreamReader(path, detectEncodingFromByteOrderMarks: true);

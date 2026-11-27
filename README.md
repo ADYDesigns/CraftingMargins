@@ -6,7 +6,7 @@ A free, open-source desktop app for Windows and macOS that shows Etsy sellers wh
 
 > The term 'Etsy' is a trademark of Etsy, Inc. This Application uses Etsy's API, but is not endorsed or certified by Etsy.
 
-**Version 0.9.1.** [CHANGELOG.md](CHANGELOG.md) lists what changed in each version.
+**Version 0.9.4.** [CHANGELOG.md](CHANGELOG.md) lists what changed in each version.
 
 ## What it does
 
@@ -84,7 +84,11 @@ Want to look around first? **Explore a demo shop first** on the welcome screen (
    - **Parts**: what goes into one thing you make, and optionally how long it takes.
    - **Rules**: which parts each listing uses, by option. Listings that haven't sold yet are there too, so a new product can be costed before its first order.
 
-   Each table has its own Save button, and a red "Unsaved changes" note shows beside it until you save. **Export costs** saves your materials, parts and rules as three CSV files you can keep as a backup or edit in a spreadsheet; drop them on Home to bring them back.
+   Each table has its own Save button, and a red "Unsaved changes" note shows beside it until you save.
+
+   **Rather fill it in with Excel?** **Cost workbook** saves one Excel file to fill in, with a page of instructions and drop-down lists for units, materials and parts. Every listing is already on its Cost rules sheet, with its options spelled exactly as Etsy names them, including option names that only your past orders use. Save it and drop it on Home; any mistake is reported with its sheet and row. It works in Excel, LibreOffice or Numbers, saved as `.xlsx`.
+
+   **Export costs** saves your materials, parts and rules as three CSV files you can keep as a backup; drop them on Home to bring them back. Bringing costs in, either way, only changes what the file mentions.
 
 The **Getting started** checklist on Home ticks these off as you go. Anything the app can't place, such as a sale with no cost rule or a statement line it doesn't recognize, is listed under **Needs attention** at the bottom of Home, and a red button appears at the top of the window. The app never guesses.
 

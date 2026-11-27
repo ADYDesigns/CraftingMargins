@@ -30,6 +30,13 @@ public partial class ProductsView : UserControl
     private void Changed(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(ProductsViewModel.TrackMachineTime) or nameof(ProductsViewModel.TrackOwnTime)) ShowTimeColumns();
+        // A part picked from elsewhere (a new one, made from the pricing check, say) is scrolled into view.
+        // Posted, so it runs once the Parts tab is showing and the grid has its rows.
+        if (e.PropertyName == nameof(ProductsViewModel.SelectedPart) && _products?.SelectedPart is { } part)
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (ReferenceEquals(_products?.SelectedPart, part)) PartsGrid.ScrollIntoView(part, null);
+            }, Avalonia.Threading.DispatcherPriority.Background);
     }
 
     private void ShowTimeColumns()

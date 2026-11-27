@@ -304,8 +304,26 @@ public sealed partial class PricingViewModel(MainViewModel main) : ObservableObj
     [ObservableProperty] private string _summary = "";
     [ObservableProperty] private string _sourceText = "";
     [ObservableProperty] private bool _pricesMayBeStale;
-    [ObservableProperty] private PriceRow? _selected;
+    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(CreatePartForOptionCommand)), NotifyPropertyChangedFor(nameof(CreatePartHeader))]
+    private PriceRow? _selected;
     public int BelowFloorCount { get; private set; }
+
+    /// <summary>The right-click menu's wording: only an option with no cost rule at all can have a part made for it.</summary>
+    public string CreatePartHeader => Selected switch
+    {
+        null or { HasNoRule: true } => "Create a part for this option…",
+        { Cost: not null } => "Create a part for this option (this option already has a cost)",
+        _ => "Create a part for this option (it has a rule; see Status)",
+    };
+
+    private bool CanCreatePart() => Selected is { HasNoRule: true };
+
+    /// <summary>Makes an empty part and the rule that links this option to it, then opens the part to fill in.</summary>
+    [RelayCommand(CanExecute = nameof(CanCreatePart))]
+    private async Task CreatePartForOption()
+    {
+        if (Selected is { HasNoRule: true } row) await main.Products.CreatePartForOption(row);
+    }
     /// <summary>Every row of the pricing check (for the suggestions on Home).</summary>
     public IReadOnlyList<PriceRow> AllRows => _all;
 
@@ -370,8 +388,15 @@ public sealed partial class PricingViewModel(MainViewModel main) : ObservableObj
         var floor = main.Services.Settings.ProfitFloor;
         var unmapped = _all.Count(r => r.Cost is null);
         Summary = _all.Count == 0 ? "Nothing to check yet: import your orders (and listings), or sync with Etsy." :
-            $"{_all.Count} options checked against your goal of {Money.Format(floor)} per sale.  {BelowFloorCount} below it in the worst case (an Offsite Ads sale)" +
+            $"{Checked(_all)} checked against your goal of {Money.Format(floor)} per sale.  {BelowFloorCount} below it in the worst case (an Offsite Ads sale)" +
             (unmapped > 0 ? $"; {unmapped} have no cost rule yet." : ".");
+    }
+
+    /// <summary>"207 options (in 88 rows…)": options that earn the same, such as colors at one price, share a row.</summary>
+    private static string Checked(IReadOnlyCollection<PriceRow> rows)
+    {
+        var combos = rows.Sum(r => r.Combinations);
+        return combos == rows.Count ? $"{rows.Count} options" : $"{combos} options (in {rows.Count} rows: options that earn the same share one)";
     }
 
     private void BuildSale()
@@ -386,7 +411,7 @@ public sealed partial class PricingViewModel(MainViewModel main) : ObservableObj
         foreach (var r in rows) SaleRows.Add(r);
         var below = rows.Count(r => r.BelowFloor);
         SaleSummary = rows.Count == 0 ? "Tick at least one listing." :
-            $"At {pct:0%} off, {below} of {rows.Count} option(s) fall below your goal of {Money.Format(main.Services.Settings.ProfitFloor)} in the worst case." +
+            $"At {pct:0%} off, {below} of {Checked(rows)} fall below your goal of {Money.Format(main.Services.Settings.ProfitFloor)} in the worst case." +
             (rows.Any(r => r.Cost is null) ? "  Options without a cost rule aren't counted." : "");
     }
 

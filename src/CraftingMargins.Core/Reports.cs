@@ -181,6 +181,8 @@ public static class PnLBuilder
             var hasRefund = g.Any(s => data.Categorizer.Categorize(s) == Category.Refunds);
             var processing = -g.Where(s => data.Categorizer.Categorize(s) == Category.ProcessingFees).Sum(s => s.Net);
             var expected = hasRefund ? order.AdjustedCardProcessingFees ?? order.CardProcessingFees : order.CardProcessingFees;
+            // Not shipped yet and no fee from Etsy: Etsy fills it in later.  Profit uses the statement's fee either way.
+            if (expected == 0 && order.DateShipped is null) continue;
             if (processing != expected)
                 m.Issues.Add(new(m.Month, false, $"Order #{g.Key}: processing fee on statement {Money.Format(processing)} vs order export {Money.Format(expected)}"));
         }

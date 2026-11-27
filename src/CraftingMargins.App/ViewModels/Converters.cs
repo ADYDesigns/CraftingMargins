@@ -30,9 +30,6 @@ public static class Converters
     /// <summary>Money for busy grids: 1,234.56, or blank for zero so the numbers that matter stand out.</summary>
     public static readonly IValueConverter MoneyOrBlank = new FuncValueConverter<decimal, string>(v => v == 0 ? "" : v.ToString("N2"));
 
-    public static readonly IValueConverter MachineTimeTip = new FuncValueConverter<bool, string>(missing =>
-        missing ? "No machine time yet: enter the minutes it takes to make." : "OK");
-
     public static readonly IValueConverter ImportTip = new FuncValueConverter<bool, string>(demo =>
         demo ? "Leave the demo to import your own Etsy files." : "Statements, orders and listings exported from Etsy Shop Manager");
 

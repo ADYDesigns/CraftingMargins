@@ -31,9 +31,16 @@
             <TextBox Width="300" PlaceholderText="Search listing or option" Text="{Binding Filter}"/>
             <CheckBox IsChecked="{Binding OnlyProblems}" Content="Only options below the goal or without a cost"/>
           </StackPanel>
-          <DataGrid AutomationProperties.Name="Pricing check" Grid.Row="2" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" IsReadOnly="True">
+          <DataGrid Name="PricingGrid" AutomationProperties.Name="Pricing check" Grid.Row="2" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" IsReadOnly="True">
+            <!-- Right-click a row.  Making a part only applies to an option with no cost rule at all. -->
+            <DataGrid.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="{Binding CreatePartHeader}" Command="{Binding CreatePartForOptionCommand}"/>
+                <MenuItem Header="Open this listing's cost rules" Command="{Binding GoToRulesCommand}"/>
+              </ContextMenu>
+            </DataGrid.ContextMenu>
             <DataGrid.Columns>
-              <DataGridTemplateColumn Header="" Width="34">
+              <DataGridTemplateColumn Header="" Width="34" SortMemberPath="Ok">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="core:PriceRow">
                     <Ellipse Classes="dot" HorizontalAlignment="Center" Fill="{Binding Ok, Converter={x:Static vm:Converters.GoodBad}}"/>
@@ -101,7 +108,7 @@
             <TextBlock DockPanel.Dock="Bottom" Classes="hint" Margin="0,8,0,0" TextWrapping="Wrap" Text="Etsy takes its fees on the sale price, and the Offsite Ads fee is still charged on ad sales during a sale. Shipping isn't discounted here."/>
             <DataGrid AutomationProperties.Name="Planned sale preview" ItemsSource="{Binding SaleRows}" IsReadOnly="True">
               <DataGrid.Columns>
-                <DataGridTemplateColumn Header="" Width="34">
+                <DataGridTemplateColumn Header="" Width="34" SortMemberPath="Ok">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate x:DataType="core:PriceRow">
                     <Ellipse Classes="dot" HorizontalAlignment="Center" Fill="{Binding Ok, Converter={x:Static vm:Converters.GoodBad}}"/>

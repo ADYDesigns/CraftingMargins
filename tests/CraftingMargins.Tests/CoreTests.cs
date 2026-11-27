@@ -328,6 +328,30 @@ public class PnLTests
     }
 
     [Fact]
+    public void Shipping_insurance_counts_with_its_label_and_the_month_still_adds_up()
+    {
+        var d = new DateOnly(2026, 10, 5);
+        var insurance = new StatementLine { Date = d, Type = "Shipping", Title = "Shipsurance Package Insurance", Info = "Label #1", FeesAndTaxes = -1.60m, Net = -1.60m };
+        StatementIds.Fill(insurance);
+        var data = Month(insurance);
+        var m = Assert.Single(PnLBuilder.Build(data));
+        Assert.True(m.SelfTestPassed, string.Join("\n", m.Issues));
+        Assert.Equal(-7.14m - 1.60m, m.Shipping);
+        Assert.Equal(-8.74m, OrderReport.Build(data).Single().Label);     // on the same order as its label
+    }
+
+    [Fact]
+    public void An_unshipped_order_without_a_card_fee_from_etsy_yet_is_not_flagged()
+    {
+        var data = Month();
+        data.Orders[0].DateShipped = null;
+        data.Orders[0].CardProcessingFees = 0;
+        Assert.Empty(Assert.Single(PnLBuilder.Build(data)).Issues);
+        data.Orders[0].DateShipped = new DateOnly(2026, 10, 7);              // once shipped, a missing fee is worth a look
+        Assert.Contains(Assert.Single(PnLBuilder.Build(data)).Issues, i => i.Message.Contains("processing fee"));
+    }
+
+    [Fact]
     public void Unknown_line_fails_the_self_test()
     {
         var odd = new StatementLine { Date = new(2026, 10, 9), Type = "Fee", Title = "Mystery fee", Info = "", FeesAndTaxes = -1m, Net = -1m };

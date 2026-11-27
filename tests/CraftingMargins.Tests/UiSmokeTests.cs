@@ -39,6 +39,12 @@ public sealed class UiSmokeTests : IDisposable
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
     }
 
+    /// <summary>
+    /// Runs an async test on the UI thread and waits for all of it.  Session.Dispatch(async () => …)
+    /// on its own only waits for the test to reach its first await, so a failure after that was lost.
+    /// </summary>
+    private static Task Ui(Func<Task> test, CancellationToken ct) => Session.Dispatch(async () => { await test(); return true; }, ct);
+
     private (MainWindow Window, MainViewModel Vm) OpenDemo()
     {
         var real = new AppServices(new FolderAppPaths(_dir));
@@ -92,7 +98,79 @@ public sealed class UiSmokeTests : IDisposable
     }, CancellationToken.None);
 
     [Fact]
-    public Task The_app_follows_a_region_that_writes_numbers_differently() => Session.Dispatch(async () =>
+    public Task The_window_opens_the_way_it_was_closed() => Session.Dispatch(() =>
+    {
+        var (window, vm) = OpenDemo();
+        window.Width = 1100; window.Height = 700;
+        Dispatcher.UIThread.RunJobs();
+        window.WindowState = WindowState.Maximized;
+        Dispatcher.UIThread.RunJobs();
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+
+        var saved = vm.Services.Settings.Window;
+        Assert.NotNull(saved);
+        Assert.True(saved.Maximized);
+        Assert.Equal((1100d, 700d), (saved.Width, saved.Height));                  // the size to go back to when un-maximized
+
+        var again = new MainWindow { DataContext = vm };
+        Assert.Equal(WindowState.Maximized, again.WindowState);
+        Assert.Equal((1100d, 700d), (again.Width, again.Height));
+
+        // Closed un-maximized: it opens that way too.
+        again.Show(); Dispatcher.UIThread.RunJobs();
+        again.WindowState = WindowState.Normal; Dispatcher.UIThread.RunJobs();
+        again.Close(); Dispatcher.UIThread.RunJobs();
+        Assert.False(vm.Services.Settings.Window!.Maximized);
+        Assert.Equal(WindowState.Normal, new MainWindow { DataContext = vm }.WindowState);
+    }, CancellationToken.None);
+
+    [Fact]
+    public Task A_part_can_be_made_from_an_uncosted_option_on_the_pricing_check() => Ui(async () =>
+    {
+        var (window, vm) = OpenDemo();
+        // Leave the Parts grid scrolled to the bottom, so the new part has to be scrolled to.
+        vm.SelectedTab = MainViewModel.TabProducts; vm.Products.SelectedSubTab = 1;
+        Dispatcher.UIThread.RunJobs();
+        vm.Products.SelectedPart = vm.Products.Parts[^1];
+        Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs();
+        vm.SelectedTab = MainViewModel.TabPricing;
+        Dispatcher.UIThread.RunJobs();
+
+        // A costed option (below the goal or not) already has its parts: the menu item is greyed out.
+        vm.Pricing.Selected = vm.Pricing.Rows.First(r => r.Cost is not null);
+        Assert.False(vm.Pricing.CreatePartForOptionCommand.CanExecute(null));
+        Assert.Contains("already has a cost", vm.Pricing.CreatePartHeader);
+
+        var row = vm.Pricing.Rows.First(r => r.HasNoRule);
+        vm.Pricing.Selected = row;
+        Assert.True(vm.Pricing.CreatePartForOptionCommand.CanExecute(null));
+        await vm.Pricing.CreatePartForOptionCommand.ExecuteAsync(null);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal((MainViewModel.TabProducts, 1), (vm.SelectedTab, vm.Products.SelectedSubTab));   // Products & Costs → Parts
+        var part = vm.Products.SelectedPart;
+        Assert.NotNull(part);
+        Assert.StartsWith(CraftingMargins.Core.Suggestions.Short(row.Title), part.Name);
+        Assert.False(part.Ok);                                                                         // nothing in it yet: flagged
+        // Scrolled to: its row is on screen inside the Parts grid.
+        Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs();
+        var grid = window.GetVisualDescendants().OfType<DataGrid>().Single(g => g.Name == "PartsGrid");
+        var shown = grid.GetVisualDescendants().OfType<DataGridRow>().SingleOrDefault(r => ReferenceEquals(r.DataContext, part) && r.IsVisible);
+        Assert.NotNull(shown);
+        var top = shown.TranslatePoint(new Avalonia.Point(0, 0), grid)!.Value.Y;
+        Assert.InRange(top, 0, grid.Bounds.Height - shown.Bounds.Height);
+        Assert.Contains(vm.Services.Db.LoadRules(), r => r.ListingId == row.ListingId && r.Parts.Any(p => p.PartId == part.Model.Id));
+        // Now it has a rule, but an empty part: still no cost on Pricing (never a green dot for $0), and no second part offered.
+        var after = vm.Pricing.AllRows.First(r => r.ListingId == row.ListingId && r.Options == row.Options);
+        Assert.Equal((false, (decimal?)null), (after.HasNoRule, after.Cost));
+        Assert.Contains("$0 so far", after.Problem);
+        Assert.Contains("Made the part", vm.Status);
+        window.Close();
+    }, CancellationToken.None);
+
+    [Fact]
+    public Task The_app_follows_a_region_that_writes_numbers_differently() => Ui(async () =>
     {
         var before = System.Globalization.CultureInfo.CurrentCulture;
         try
@@ -175,7 +253,7 @@ public sealed class UiSmokeTests : IDisposable
     }, CancellationToken.None);
 
     [Fact]
-    public Task Renaming_an_item_sold_outside_etsy_takes_its_cost_rules_along() => Session.Dispatch(async () =>
+    public Task Renaming_an_item_sold_outside_etsy_takes_its_cost_rules_along() => Ui(async () =>
     {
         var (window, vm) = OpenDemo();
         var db = vm.Services.Db;
@@ -201,7 +279,7 @@ public sealed class UiSmokeTests : IDisposable
     }, CancellationToken.None);
 
     [Fact]
-    public Task The_same_retired_option_cannot_be_saved_twice() => Session.Dispatch(async () =>
+    public Task The_same_retired_option_cannot_be_saved_twice() => Ui(async () =>
     {
         var (window, vm) = OpenDemo();
         var p = vm.Products;
@@ -285,7 +363,7 @@ public sealed class UiSmokeTests : IDisposable
     }, CancellationToken.None);
 
     [Fact]
-    public Task Unsaved_edits_survive_a_reload_and_another_grids_save() => Session.Dispatch(async () =>
+    public Task Unsaved_edits_survive_a_reload_and_another_grids_save() => Ui(async () =>
     {
         var (window, vm) = OpenDemo();
         var p = vm.Products;
@@ -331,7 +409,7 @@ public sealed class UiSmokeTests : IDisposable
     }, CancellationToken.None);
 
     [Fact]
-    public Task Rule_edits_are_kept_when_another_listing_is_clicked() => Session.Dispatch(async () =>
+    public Task Rule_edits_are_kept_when_another_listing_is_clicked() => Ui(async () =>
     {
         var (window, vm) = OpenDemo();
         var p = vm.Products;
@@ -357,7 +435,7 @@ public sealed class UiSmokeTests : IDisposable
     }, CancellationToken.None);
 
     [Fact]
-    public Task Settings_refuse_fee_rates_that_add_up_to_100_percent() => Session.Dispatch(async () =>
+    public Task Settings_refuse_fee_rates_that_add_up_to_100_percent() => Ui(async () =>
     {
         var (window, vm) = OpenDemo();
         var before = vm.Services.Db.LoadFeeRates().Count;
@@ -371,7 +449,7 @@ public sealed class UiSmokeTests : IDisposable
     }, CancellationToken.None);
 
     [Fact]
-    public Task Renaming_an_expense_category_takes_its_expenses_along() => Session.Dispatch(async () =>
+    public Task Renaming_an_expense_category_takes_its_expenses_along() => Ui(async () =>
     {
         var (window, vm) = OpenDemo();
         var used = vm.Services.Db.LoadExpenses().GroupBy(x => x.Category).OrderByDescending(g => g.Count()).First();

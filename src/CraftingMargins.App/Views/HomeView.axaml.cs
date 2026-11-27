@@ -41,10 +41,10 @@ public partial class HomeView : UserControl
 
         var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Choose Etsy CSV exports",
+            Title = "Choose Etsy CSV exports or your cost workbook",
             AllowMultiple = true,
             SuggestedStartLocation = start,
-            FileTypeFilter = [new FilePickerFileType("CSV files") { Patterns = ["*.csv"] }],
+            FileTypeFilter = [new FilePickerFileType("Etsy CSV files and the cost workbook") { Patterns = ["*.csv", "*.xlsx"] }],
         });
         if (Vm is { } vm) await vm.ImportFiles(files.Select(f => f.TryGetLocalPath()).OfType<string>().ToList());
     }

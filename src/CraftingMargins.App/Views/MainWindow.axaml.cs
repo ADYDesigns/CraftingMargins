@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 ADY Designs, LLC. Part of Crafting Margins; see LICENSE and NOTICE.md.
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
@@ -13,13 +14,31 @@ public partial class MainWindow : Window
     private MainViewModel? Vm => DataContext as MainViewModel;
     private bool _closeConfirmed;
 
+    /// <summary>Size and place the last time the window wasn't maximized or minimized, kept so they're saved even when it closes maximized.</summary>
+    private (double Width, double Height, PixelPoint Position)? _normal;
+    private bool _placed;
+
     public MainWindow()
     {
         InitializeComponent();
 
+        // Open the way it was left: maximized, or at its last size and place (if that's still on a screen).
+        DataContextChanged += (_, _) =>
+        {
+            if (_placed || Vm is not { } vm) return;
+            _placed = true;
+            var saved = vm.Services.Settings.Window;
+            WindowFit.Restore(this, saved);
+            // Opening maximized never shows the normal size, so carry the saved one over for next time.
+            if (saved is not null) _normal = (saved.Width, saved.Height, new PixelPoint(saved.X, saved.Y));
+        };
+        PositionChanged += (_, _) => RememberNormal();
+        PropertyChanged += (_, e) => { if (e.Property == ClientSizeProperty) RememberNormal(); };
+
         Opened += async (_, _) =>
         {
-            WindowFit.FitToScreen(this);
+            if (WindowState == WindowState.Normal) WindowFit.FitToScreen(this);
+            RememberNormal();
             // Etsy's terms: keep API data fresh (listings within 6 hours).
             if (Vm is { } vm)
             {
@@ -53,6 +72,15 @@ public partial class MainWindow : Window
                 return;
             }
 
+            try
+            {
+                vm.Services.Settings.Window = _normal is { } n
+                    ? new WindowPlacement(WindowState == WindowState.Maximized, n.Width, n.Height, n.Position.X, n.Position.Y)
+                    : null;
+                vm.Services.SaveSettings();
+            }
+            catch (Exception ex) { Log.Write("Couldn't save the window's size: " + ex.Message); }
+
             // Back up when the app closes, but only if something changed since the last backup:
             // opening the app to look at a number must never push a good backup out of the set that's kept.
             try
@@ -64,4 +92,9 @@ public partial class MainWindow : Window
         };
     }
 
+    private void RememberNormal()
+    {
+        if (WindowState == WindowState.Normal && IsVisible && ClientSize.Width > 0)
+            _normal = (ClientSize.Width, ClientSize.Height, Position);
+    }
 }

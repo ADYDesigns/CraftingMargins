@@ -439,8 +439,9 @@ public sealed class EtsyTests : IDisposable
         Assert.Equal(36.22m, _db.LoadStatement().Single().Net);
         Assert.Equal(Epoch(2026, 10, 6), settings.ReceiptsModifiedSince);
         Assert.NotNull(settings.LastApiSync);
-        // Payments are only asked for on shipped orders; nothing is ever written to Etsy.
-        Assert.DoesNotContain(fake.Calls, c => c.Request.RequestUri!.AbsolutePath.EndsWith("/1002/payments"));
+        // Payments are asked for on unshipped orders too (Etsy charges the card fee at the sale);
+        // "not found" for one just means no fee yet.  Nothing is ever written to Etsy.
+        Assert.Contains(fake.Calls, c => c.Request.RequestUri!.AbsolutePath.EndsWith("/1002/payments"));
         Assert.All(fake.Calls, c => Assert.Equal(HttpMethod.Get, c.Request.Method));
 
         // The next sync only asks for receipts changed since (minus a day of overlap).

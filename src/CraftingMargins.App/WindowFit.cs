@@ -8,6 +8,30 @@ namespace CraftingMargins.App;
 /// <summary>Shrinks a window that is bigger than the screen it opens on (small laptop screens, high display scaling).</summary>
 public static class WindowFit
 {
+    /// <summary>
+    /// Before the window is shown: the size and place it was last closed with, and maximized if it
+    /// was.  A place that isn't on any screen now (a monitor unplugged, another computer) is
+    /// ignored and the window is centred instead.
+    /// </summary>
+    public static void Restore(Window w, Data.WindowPlacement? saved)
+    {
+        if (saved is null || saved.Width < 100 || saved.Height < 100) return;
+        w.Width = Math.Max(w.MinWidth, saved.Width);
+        w.Height = Math.Max(w.MinHeight, saved.Height);
+        try
+        {
+            // The top-left corner, a little inside, must be on a screen's working area.
+            var corner = new PixelPoint(saved.X + 40, saved.Y + 20);
+            if (w.Screens.All.Any(s => s.WorkingArea.Contains(corner)))
+            {
+                w.WindowStartupLocation = WindowStartupLocation.Manual;
+                w.Position = new PixelPoint(saved.X, saved.Y);
+            }
+        }
+        catch (Exception ex) { Data.Log.Write("Couldn't check the screens for the window's place: " + ex.Message); }
+        if (saved.Maximized) w.WindowState = WindowState.Maximized;
+    }
+
     public static void FitToScreen(Window w)
     {
         var screen = w.Screens.ScreenFromWindow(w) ?? w.Screens.Primary;

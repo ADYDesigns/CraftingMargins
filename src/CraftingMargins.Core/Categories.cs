@@ -73,6 +73,7 @@ public sealed class Categorizer
         new("Marketing", "Offsite Ads", Category.OffsiteAds),
         new("Marketing", "Etsy Ads", Category.EtsyAds),
         new("Shipping", "shipping label", Category.ShippingLabels, "Labels, adjustments and adjustment credits"),
+        new("Shipping", "Insurance", Category.ShippingLabels, "Package insurance bought with a label (Shipsurance); counts with that label"),
         new("Deposit", null, Category.Excluded, "Transfer to bank"),
         new("Payment", "Card Payment", Category.Excluded, "Paying a negative Etsy balance"),
     ];

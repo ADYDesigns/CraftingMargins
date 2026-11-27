@@ -134,10 +134,12 @@ public sealed class EtsySync(EtsyClient client, Database db, AppSettings setting
                 continue;
             }
             progress?.Report($"Card fees: order {++n} of {receipts.Count}");
-            // Etsy creates the payment record when the order ships, so an unshipped order has none yet.
-            var payments = r.IsShipped
-                ? (await client.GetAsync<EtsyPage<EtsyPayment>>($"shops/{shop}/receipts/{r.ReceiptId}/payments", ct: ct)).Results
-                : [];
+            // Asked for every order: the statement shows Etsy charging the card fee at the sale, not
+            // at shipping.  If Etsy has no payment record yet, the fee is filled in by a later sync
+            // (shipping changes the order, so it is fetched again).
+            List<EtsyPayment> payments;
+            try { payments = (await client.GetAsync<EtsyPage<EtsyPayment>>($"shops/{shop}/receipts/{r.ReceiptId}/payments", ct: ct)).Results; }
+            catch (EtsyApiException ex) when (!r.IsShipped && ex.Status == System.Net.HttpStatusCode.NotFound) { payments = []; }   // no payment record yet
             var o = EtsyMapper.ToOrder(r, payments, _tz);
             if (existing.TryGetValue(id, out var old))
             {

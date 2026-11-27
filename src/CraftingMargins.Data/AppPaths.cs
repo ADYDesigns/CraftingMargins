@@ -34,6 +34,13 @@ public enum ThemeMode { System, Light, Dark }
 public enum AccentColor { Blue, Teal }
 
 /// <summary>Simple settings kept in settings.json.  Dated cost and fee settings live in the database.</summary>
+/// <summary>
+/// Where the main window was.  Width and height are in the screen's own units (as Avalonia
+/// sizes windows); X and Y are pixels.  The size and place are the ones it had when last not
+/// maximized, so un-maximizing goes back to them.
+/// </summary>
+public sealed record WindowPlacement(bool Maximized, double Width, double Height, int X, int Y);
+
 public sealed class AppSettings
 {
     public string ShopName { get; set; } = "";
@@ -95,6 +102,8 @@ public sealed class AppSettings
     public bool HideChecklist { get; set; }
     /// <summary>A newer release the user said not to mention again.</summary>
     public string SkippedVersion { get; set; } = "";
+    /// <summary>The main window as it was last closed: maximized or not, and its size and place when not.  Null = the default.</summary>
+    public WindowPlacement? Window { get; set; }
 
     // ----- Etsy API (Phase 2).  The shared secret and tokens are NOT here: they're DPAPI-encrypted in Secrets\. -----
     /// <summary>The Seller App's keystring (Etsy calls it the client ID; it isn't secret).</summary>
