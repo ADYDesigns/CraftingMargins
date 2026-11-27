@@ -6,7 +6,7 @@ A free, open-source desktop app for Windows and macOS that shows Etsy sellers wh
 
 > The term 'Etsy' is a trademark of Etsy, Inc. This Application uses Etsy's API, but is not endorsed or certified by Etsy.
 
-**Version 0.9.0.** [CHANGELOG.md](CHANGELOG.md) lists what changed in each version.
+**Version 0.9.1.** [CHANGELOG.md](CHANGELOG.md) lists what changed in each version.
 
 ## What it does
 
@@ -96,10 +96,10 @@ There's no shared key: you register your own free **Seller App** with Etsy, whic
    - Choose the **Seller App** type (tools for your own shop). Approval is automatic and usually takes minutes.
    - Name: anything of your own (don't use "Etsy" in it).
    - Application purpose, suggested: *"Bookkeeping and profit tracking for my own shop; read-only."*
-   - Callback URL: `http://localhost:3003/callback`. If Etsy insists on https, use `https://localhost:3003/callback` and change it under **Settings → Etsy API** to match. After you approve, your browser shows an error page; copy its address into the app.
-2. Under **Settings → Etsy API**, enter the keystring and shared secret, then **Connect**. Etsy's own page opens in your browser; the app never sees your Etsy password.
-3. **Sync now**. After that, the app syncs by itself on start whenever the last sync is more than 6 hours old.
-4. **Ledger compare** (optional): Etsy doesn't say what its payment ledger's entry types mean. Pick a month you also have a statement for and compare; the app learns each type from the matching statement lines, and **Use these categories** saves that. Only then turn on *Fill months that have no statement CSV from the API ledger*. A statement always wins over API data for the same month.
+2. Once Etsy approves it, the app's page shows a **keystring** and a **shared secret**. Etsy doesn't ask for a callback URL when you create the app, so **edit the app**, add `http://localhost:3003/callback` as its callback URL, and save. If Etsy insists on https, use `https://localhost:3003/callback` and change it under **Settings → Etsy API → Advanced** to match; after you approve in step 3, your browser then shows an error page, and you copy its address into the app.
+3. Under **Settings → Etsy API**, enter the keystring and shared secret, then **Connect**. Etsy's own page opens in your browser; the app never sees your Etsy password.
+4. **Sync now**. After that, the app syncs by itself on start whenever the last sync is more than 6 hours old.
+5. **Ledger compare** (optional): Etsy doesn't say what its payment ledger's entry types mean. Pick a month you also have a statement for and compare; the app learns each type from the matching statement lines, and **Use these categories** saves that. Only then turn on *Fill months that have no statement CSV from the API ledger*. A statement always wins over API data for the same month.
 
 The app only asks for permission to read (`transactions_r`, `listings_r`, `shops_r`). The shared secret and sign-in tokens are kept encrypted (Windows) or in your login keychain (Mac), never in the database, settings, backups or logs. Etsy asks you to connect again about every 90 days, and may switch off an app that hasn't been used for 6 months; if that happens, register a new one.
 

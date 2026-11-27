@@ -15,7 +15,29 @@ public static class EtsyJson
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        Converters = { new LenientStringConverter() },
     };
+}
+
+/// <summary>
+/// Reads a text field whether Etsy sends it as text, a number or true/false.  Etsy's own
+/// documentation isn't always right about which (the ledger's reference_id is documented
+/// as text but arrives as a number), and one surprise like that shouldn't stop a sync.
+/// </summary>
+public sealed class LenientStringConverter : JsonConverter<string>
+{
+    public override bool HandleNull => false;
+
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => reader.TokenType switch
+    {
+        JsonTokenType.String => reader.GetString(),
+        JsonTokenType.Number => System.Text.Encoding.UTF8.GetString(reader.HasValueSequence ? System.Buffers.BuffersExtensions.ToArray(reader.ValueSequence) : reader.ValueSpan),
+        JsonTokenType.True => "true",
+        JsonTokenType.False => "false",
+        _ => throw new JsonException($"Expected text but found {reader.TokenType}."),
+    };
+
+    public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) => writer.WriteStringValue(value);
 }
 
 public sealed class EtsyMoney

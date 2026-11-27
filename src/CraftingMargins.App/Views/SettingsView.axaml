@@ -229,18 +229,13 @@
                   <StackPanel Spacing="10">
                     <TextBlock Classes="h2" Text="Step 1.  Create your Etsy app"/>
                     <TextBlock TextWrapping="Wrap" Text="Open Etsy's developer page while signed in to your shop, and choose Create a new app. Fill it in like this:"/>
-                    <Grid ColumnDefinitions="190,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8" Margin="8,0,0,0">
+                    <Grid ColumnDefinitions="190,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" Margin="8,0,0,0">
                       <TextBlock FontWeight="SemiBold" Text="App type"/>
                       <TextBlock Grid.Column="1" TextWrapping="Wrap" Text="Seller App (tools for your own shop). Etsy usually approves it within minutes."/>
                       <TextBlock Grid.Row="1" FontWeight="SemiBold" Text="Name"/>
                       <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Text="Anything of your own, e.g. &quot;My shop bookkeeping&quot;. Don't use the word Etsy."/>
                       <TextBlock Grid.Row="2" FontWeight="SemiBold" Text="Purpose"/>
                       <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" Text="Bookkeeping and profit tracking for my own shop; read-only."/>
-                      <TextBlock Grid.Row="3" FontWeight="SemiBold" Text="Callback URL" VerticalAlignment="Center"/>
-                      <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                        <TextBox Width="340" IsReadOnly="True" Text="{Binding RedirectUri}"/>
-                        <Button Content="Copy" Command="{Binding CopyRedirectUriCommand}"/>
-                      </StackPanel>
                     </Grid>
                     <Button Classes="primary" HorizontalAlignment="Left" Content="Open Etsy's developer page" Command="{Binding OpenDeveloperPortalCommand}"/>
                   </StackPanel>
@@ -249,8 +244,13 @@
                 <!-- Step 2 -->
                 <Border Classes="card">
                   <StackPanel Spacing="10">
-                    <TextBlock Classes="h2" Text="Step 2.  Paste your app's keys"/>
-                    <TextBlock TextWrapping="Wrap" Text="When Etsy approves the app, its page shows a keystring and a shared secret. Copy each one here."/>
+                    <TextBlock Classes="h2" Text="Step 2.  Add the callback URL and paste your app's keys"/>
+                    <TextBlock TextWrapping="Wrap" Text="When Etsy approves the app, it shows a keystring and a shared secret. Before leaving that page, edit the app on Etsy, add this callback URL, and save it there:"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="8,0,0,0">
+                      <TextBox Width="340" IsReadOnly="True" Text="{Binding RedirectUri}"/>
+                      <Button Content="Copy" Command="{Binding CopyRedirectUriCommand}"/>
+                    </StackPanel>
+                    <TextBlock TextWrapping="Wrap" Text="Then copy the keystring and shared secret here."/>
                     <StackPanel Orientation="Horizontal" Spacing="16">
                       <StackPanel>
                         <TextBlock Classes="label" Text="Keystring"/>

@@ -2,6 +2,14 @@
 
 What changed in each version, newest first. Versions before the first public release were early test builds.
 
+## 0.9.1 (November 27, 2026)
+
+Fixes for connecting to Etsy. If you use the Etsy API, please update.
+
+- **Sync now finishes.** Etsy sends one field in its payment ledger as a number where its documentation says text, which stopped every sync partway. The app now accepts either.
+- **A sync that stops partway still shows what it saved.** Orders and listings pulled before a problem appear right away, without restarting the app.
+- **Setting up your Etsy app:** Etsy asks for the callback URL only after the app is created. The steps in the app and the README now say to edit the app and add it once the keys appear.
+- After a sync, the app says when the Monthly P&L still needs your monthly statement CSVs, and the Getting started checklist explains that Etsy's API doesn't provide statements.
 ## 0.9.0 (November 24, 2026)
 
 The first public release.

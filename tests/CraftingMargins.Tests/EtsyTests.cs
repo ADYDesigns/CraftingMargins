@@ -199,6 +199,23 @@ public sealed class EtsyTests : IDisposable
         """;
 
     [Fact]
+    public void Ledger_entry_reads_a_reference_id_sent_as_a_number_or_as_text()
+    {
+        // Etsy documents reference_id as text but sends a number (seen on the first live sync).
+        const string json = """
+            {"count":2,"results":[
+              {"entry_id":1,"sequence_number":1,"amount":-20,"currency":"USD","description":"listing","created_timestamp":1764000000,
+               "ledger_type":"listing","reference_type":"listing","reference_id":4123456789,"parent_entry_id":null},
+              {"entry_id":2,"sequence_number":2,"amount":1500,"currency":"USD","description":"sale","created_timestamp":1764000000,
+               "ledger_type":"transaction","reference_type":"receipt","reference_id":"3987654321","parent_entry_id":1}]}
+            """;
+        var page = System.Text.Json.JsonSerializer.Deserialize<EtsyPage<EtsyLedgerEntry>>(json, EtsyJson.Options)!;
+        Assert.Equal("4123456789", page.Results[0].ReferenceId);
+        Assert.Equal("3987654321", page.Results[1].ReferenceId);
+        Assert.Null(System.Text.Json.JsonSerializer.Deserialize<EtsyLedgerEntry>("""{"reference_id":null}""", EtsyJson.Options)!.ReferenceId);
+    }
+
+    [Fact]
     public void Receipt_maps_like_the_order_export_and_drops_buyer_data_and_personalization()
     {
         var r = System.Text.Json.JsonSerializer.Deserialize<EtsyReceipt>(ReceiptJson(1001), EtsyJson.Options)!;

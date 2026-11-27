@@ -254,7 +254,11 @@ public sealed partial class EtsyApiViewModel(MainViewModel main) : ObservableObj
             // Off the screen's thread: saving a big first sync to the database would otherwise freeze the window.
             var result = await Task.Run(() => sync.SyncAsync(progress));
             S.SaveSettings();
-            await main.RefreshAsync((automatic ? "Synced with Etsy: " : "Sync finished: ") + result.Summary + ".");
+            // The API has no monthly statements; the Monthly P&L uses statement CSVs unless the ledger is switched on.
+            var pnlNote = !S.Settings.UseApiLedger && S.Db.CsvStatementMonths().Count == 0
+                ? "  The Monthly P&L still needs your monthly statement CSVs (drop them on Home), or Ledger compare under Advanced."
+                : "";
+            await main.RefreshAsync((automatic ? "Synced with Etsy: " : "Sync finished: ") + result.Summary + "." + pnlNote);
         }
         catch (Exception ex)
         {
@@ -263,7 +267,9 @@ public sealed partial class EtsyApiViewModel(MainViewModel main) : ObservableObj
             try { S.SaveSettings(); }   // keeps any renewed token state and watermarks reached
             catch (Exception save) { Log.Write("Couldn't save settings after a failed sync: " + save.Message); }
             Log.Write("Sync failed: " + Describe(ex));
-            main.Status = "Sync didn't finish: " + ex.Message + (Expected(ex) ? "" : "  (Details are in the log.)");
+            // What was saved before the failure (orders, listings…) is real data: show it.
+            await main.RefreshAsync("Sync didn't finish: " + ex.Message + (Expected(ex) ? "" : "  (Details are in the log.)") +
+                "  Anything it pulled before that is saved and shown.");
         }
         finally { IsBusy = false; ProgressText = ""; Load(); }
     }

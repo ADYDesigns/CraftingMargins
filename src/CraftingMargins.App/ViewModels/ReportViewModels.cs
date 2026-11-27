@@ -53,7 +53,7 @@ public sealed partial class HomeViewModel : ObservableObject
         ChecklistItem[] items =
         [
             new(data.Statement.Count > 0, "Import your monthly statements",
-                "Shop Manager → Finances → Monthly statements → Download CSV, one per month. Drop them in the box above.", MainViewModel.TabHome),
+                "Shop Manager → Finances → Monthly statements → Download CSV, one per month. Drop them in the box above. Needed even with the Etsy API connected: Etsy's API doesn't provide statements.", MainViewModel.TabHome),
             new(data.Orders.Count > 0 && data.Items.Count > 0, "Import your orders",
                 "Settings → Options → Download Data: Sold Orders and Sold Order Items (or connect the Etsy API).", MainViewModel.TabHome),
             new(listings > 0, "Import your listings",
